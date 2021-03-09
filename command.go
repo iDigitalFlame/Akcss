@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	socket    = "/var/run/ackss.sock"
+	socket    = "/var/run/akcss.sock"
 	socketTCP = "127.0.0.1:9090"
 )
 
@@ -57,22 +57,30 @@ func Start() {
 	}
 }
 func (f flags) exec() error {
+	if f.Command.Config {
+		os.Stdout.WriteString(config)
+		return nil
+	}
 	if f.Command.Daemon {
-		return daemon(f.Args.Config)
+		return daemon(f.Args.Config, f.Args.Fault)
 	}
 	if f.Command.Inline && (f.details.Service.Hostname.V == "c" || f.details.Service.Hostname.V == "d") {
 		if f.sock = socket; len(f.Extra) >= 1 && len(f.Extra[0]) > 0 {
 			f.sock = f.Extra[0]
 		}
 		var (
-			n, ok  = os.LookupEnv("common_name")
-			r, ok1 = os.LookupEnv("untrusted_ip")
-			l, ok2 = os.LookupEnv("ifconfig_pool_remote_ip")
-			d, ok3 = os.LookupEnv("time_duration")
+			n, ok   = os.LookupEnv("common_name")
+			r, ok1  = os.LookupEnv("untrusted_ip")
+			l, ok2  = os.LookupEnv("ifconfig_pool_remote_ip")
+			d, ok3  = os.LookupEnv("time_duration")
+			r6, ok4 = os.LookupEnv("untrusted_ip6")
 		)
 		if f.details.Service.Hostname.V == "c" {
-			if !ok || !ok1 || !ok2 {
+			if !ok || (!ok1 && !ok4) || !ok2 {
 				return errNoEnv
+			}
+			if len(r6) > 0 && len(r) == 0 {
+				r = r6
 			}
 			return f.sendOk(actionConnect, responseOk, "", typeConnect{ID: f.ID, Name: n, Local: l, Remote: r})
 		}
@@ -125,10 +133,12 @@ func (f flags) exec() error {
 			} else {
 				os.Stdout.WriteString("    ")
 			}
-			os.Stdout.WriteString(
-				exp(strconv.FormatUint(x.PID, 10), 8) + exp(strconv.FormatUint(uint64(x.Port), 10)+"/"+
-					x.Protocol, 10) + " " + x.Hostname + "\n",
-			)
+			if x.PID > 0 {
+				os.Stdout.WriteString(exp(strconv.FormatUint(x.PID, 10), 8))
+			} else {
+				os.Stdout.WriteString("        ")
+			}
+			os.Stdout.WriteString(exp(strconv.FormatUint(uint64(x.Port), 10)+"/"+x.Protocol, 10) + " " + x.Hostname + "\n")
 		}
 		return nil
 	}
@@ -159,6 +169,19 @@ func (f flags) action() error {
 	case f.Command.Server.Edit:
 		if err := f.verify(false); err != nil {
 			return err
+		}
+		if f.details.DH.Empty && !f.Args.Force {
+			if !confirm(`Are you sure you want to reset the server "`+f.ID+`" dhparam? [y/N]`, false) {
+				return errAborted
+			}
+		}
+		if f.details.Service.Auth.Empty && !f.Args.Force {
+			if !confirm(
+				`Are you sure you want to reset the server "`+f.ID+`" TLS-AUTH`+
+					"\nThis will affect all previously created profiles? [y/N]", false,
+			) {
+				return errAborted
+			}
 		}
 		return f.sendOk(actionUpdate, responseOk, "", f.details)
 	case f.Command.Server.Delete:

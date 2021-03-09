@@ -1,0 +1,34 @@
+[Unit]
+After                   = syslog.target network-online.target
+Wants                   = network-online.target
+Description             = Akcss OpenVPN Manager Service
+
+[Service]
+Type                    = simple
+User                    = root
+Group                   = root
+ExecStart               = /usr/bin/akcss --daemon -c /etc/akcss.conf
+KillSignal              = SIGINT
+PrivateTmp              = true
+DeviceAllow             = /dev/null rw
+DeviceAllow             = /dev/net/tun rw
+KeyringMode             = private
+ProtectHome             = true
+ProtectClock            = true
+PrivateUsers            = false
+ProtectSystem           = strict
+ReadWritePaths          = /var/run /var/run/akcss /tmp <akcss server/ca dir>
+PrivateDevices          = false
+NoNewPrivileges         = true
+LockPersonality         = true
+RestrictRealtime        = true
+RestrictSUIDSGID        = true
+ProtectKernelLogs       = true
+RestrictNamespaces      = true
+ProtectControlGroups    = true
+ProtectKernelModules    = true
+ProtectKernelTunables   = true
+RestrictAddressFamilies = AF_INET AF_INET6 AF_UNIX AF_NETLINK
+
+[Install]
+WantedBy                = multi-user.target

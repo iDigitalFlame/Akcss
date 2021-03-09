@@ -19,6 +19,7 @@ package vpn
 import (
 	"bytes"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"os/user"
@@ -182,7 +183,7 @@ func (p *protocol) UnmarshalJSON(b []byte) error {
 	}
 	return nil
 }
-func perms(p string, i os.FileInfo, e error) error {
+func perms(p string, d fs.DirEntry, _ error) error {
 	if runtime.GOOS == "windows" {
 		return nil
 	}
@@ -200,13 +201,13 @@ func perms(p string, i os.FileInfo, e error) error {
 		}
 		nobody = int(n)
 	}
-	if i.IsDir() {
+	if d.IsDir() {
 		if err := os.Chmod(p, 0750); err != nil {
 			return err
 		}
 		return os.Chown(p, 0, nobody)
 	}
-	switch i.Name() {
+	switch d.Name() {
 	case "ip.log":
 		fallthrough
 	case "status.log":

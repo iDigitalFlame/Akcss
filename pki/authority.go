@@ -133,7 +133,7 @@ func (a *Authority) crl() ([]Update, error) {
 	for i := range a.Issued {
 		if err = a.Issued[i].init(); err != nil {
 			if err == errRevoked {
-				r = append(r, pkix.RevokedCertificate{RevocationTime: *a.Issued[i].Revoked, SerialNumber: &a.Issued[i].Serial})
+				err, r = nil, append(r, pkix.RevokedCertificate{RevocationTime: *a.Issued[i].Revoked, SerialNumber: &a.Issued[i].Serial})
 				continue
 			}
 			if !os.IsNotExist(err) {

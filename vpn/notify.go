@@ -265,7 +265,7 @@ func (s *Server) actionCreate(n, e string) {
 	if len(e) == 0 {
 		return
 	}
-	s.manager.Mail(e, `New VPN Profile for "`+s.Service.Hostname+`" was Created for You`, fmt.Sprintf(msgNewOwnBody, n, s.Service.Hostname))
+	s.manager.Mail(e, `New VPN Profile "`+n+`" was Created for You`, fmt.Sprintf(msgNewOwnBody, n, s.Service.Hostname))
 }
 func (a action) MarshalJSON() ([]byte, error) {
 	return []byte(`"` + a.String() + `"`), nil

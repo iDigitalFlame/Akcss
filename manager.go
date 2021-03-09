@@ -68,13 +68,14 @@ type manager struct {
 	log     logx.Log
 	err     error
 	lock    sync.RWMutex
+	fault   bool
 	cancel  context.CancelFunc
 	startup uint32
 	deliver chan mail
 	servers map[string]*server
 }
 
-func daemon(f string) error {
+func daemon(f string, t bool) error {
 	b, err := ioutil.ReadFile(f)
 	if err != nil {
 		return err
@@ -93,7 +94,7 @@ func daemon(f string) error {
 	if err = m.reload(); err != nil {
 		return err
 	}
-	if len(m.Config.Socket) == 0 {
+	if m.fault = t; len(m.Config.Socket) == 0 {
 		if runtime.GOOS == "windows" {
 			m.Config.Socket = socketTCP
 		} else {
@@ -101,7 +102,7 @@ func daemon(f string) error {
 		}
 	}
 	var l net.Listener
-	if strings.HasPrefix("unix:", strings.ToLower(m.Config.Socket)) {
+	if isUnix(m.Config.Socket) {
 		l, err = net.Listen("unix", m.Config.Socket[5:])
 	} else {
 		l, err = net.Listen("tcp", m.Config.Socket)
@@ -110,7 +111,16 @@ func daemon(f string) error {
 		return xerr.Wrap(`could not listen on "`+m.Config.Socket+`"`, err)
 	}
 	if _, ok := l.(*net.UnixListener); ok {
-		if err = os.Chmod(m.Config.Socket, 0640); err != nil {
+		if err := lookupNobody(); err != nil {
+			m.log.Warning(`[daemon] Could not lookup the "nobody" user, you may have permission issues: %s!`, err.Error())
+		} else {
+			if err = os.Chown(m.Config.Socket[5:], 0, nobody); err != nil {
+				l.Close()
+				m.shutdown(l)
+				return xerr.Wrap(`could not set permissions on "`+m.Config.Socket+`"`, err)
+			}
+		}
+		if err = os.Chmod(m.Config.Socket[5:], 0660); err != nil {
 			l.Close()
 			m.shutdown(l)
 			return xerr.Wrap(`could not set permissions on "`+m.Config.Socket+`"`, err)
@@ -130,6 +140,10 @@ func daemon(f string) error {
 		}
 		m.log.Debug("[deamon] Starting server %q...", k)
 		if err = s.Start(); err != nil {
+			m.log.Error("[daemon] Could not start server %q: %s!", s.ID, err.Error())
+			if m.fault {
+				continue
+			}
 			m.shutdown(l)
 			return xerr.Wrap(`could not autostart server "`+k+`"`, err)
 		}
@@ -227,6 +241,12 @@ func (m *manager) reload() error {
 	if err != nil {
 		return xerr.Wrap(`unable to load config "`+m.Config.Dirs.Config+`"`, err)
 	}
+	if err = filepath.WalkDir(m.Config.Dirs.CA, m.perms); err != nil {
+		return xerr.Wrap(`unable to set perms "`+m.Config.Dirs.CA+`"`, err)
+	}
+	if err = filepath.WalkDir(m.Config.Dirs.Config, m.perms); err != nil {
+		return xerr.Wrap(`unable to set perms "`+m.Config.Dirs.Config+`"`, err)
+	}
 	if len(l) == 0 {
 		if m.log.Debug("[server/reload] No server entries found, bailing!"); m.servers == nil {
 			m.servers = make(map[string]*server)
@@ -306,6 +326,9 @@ func (m *manager) shutdown(l net.Listener) {
 	}
 	for k, s := range m.servers {
 		if !s.Running() {
+			if err := s.Save(); err != nil {
+				m.log.Warning("[daemon/shutdown] %s: Saving server state failed: %s!", s.ID, err.Error())
+			}
 			continue
 		}
 		m.log.Debug("[daemon/shutdown] Attempting to stop server %q...", k)
@@ -339,6 +362,9 @@ func (m *manager) Callback(s *vpn.Server, err error) {
 	}
 	if err != nil {
 		m.log.Error("[daemon/callback] %s: Callback error: %s!", s.ID, err.Error())
+		if m.fault {
+			return
+		}
 		if m.Config.Fail || atomic.LoadUint32(&m.startup) == 0 {
 			m.bail(xerr.Wrap(s.ID, err))
 		}

@@ -99,6 +99,7 @@ type Server struct {
 	} `json:"server"`
 
 	e       *exec.Cmd
+	std     bytes.Buffer
 	log     logx.Log
 	dir     string
 	lock    sync.Mutex
@@ -142,7 +143,11 @@ func (s *Server) wait() {
 		if d := lastMessage(filepath.Join(s.dir, "server.log")); len(d) > 0 {
 			s.log.Error("[server/wait] %s: Log trace:\n%s", s.ID, d)
 		}
+		if s.std.Len() > 0 {
+			s.log.Error("[server/wait] %s: Stdout/Stderr trace:\n%s", s.ID, s.std.String())
+		}
 	}
+	s.std.Reset()
 	s.log.Trace("[server/wait] %s: Wait ended!", s.ID)
 	if b, err := ioutil.ReadFile(filepath.Join(s.dir, "ip.log")); err == nil {
 		var (
@@ -253,10 +258,11 @@ func (s *Server) start() error {
 		return err
 	}
 	s.log.Debug("[server/start] %s: Setting working directory permissions...", s.ID)
-	if err = filepath.Walk(s.dir, perms); err != nil {
+	if err = filepath.WalkDir(s.dir, perms); err != nil {
 		s.log.Warning("[server/start] %s: Could not properly set permissions: %s!", s.ID, err.Error())
 	}
 	s.e = exec.Command("openvpn", "--config", i)
+	s.e.Stdout, s.e.Stderr = &s.std, &s.std
 	if err = s.e.Start(); err != nil {
 		return xerr.Wrap("could not start server", err)
 	}
@@ -362,8 +368,9 @@ func (s *Server) Print(w writer) {
 			w.WriteString("  " + exp(x.Email, 18) + x.Events.String() + "\n")
 		}
 	}
-	w.WriteString("\nPKI\n  " + exp("Cert Life", 18))
-	w.WriteString(strconv.FormatUint(uint64(s.CA.Lifetime.Server), 10) + " days\n  ")
+	w.WriteString("\nPKI\n  " + exp("Server Cert Life", 18))
+	w.WriteString(strconv.FormatUint(uint64(s.CA.Lifetime.Server), 10) + " days\n  " + exp("Client Cert Life", 18))
+	w.WriteString(strconv.FormatUint(uint64(s.CA.Lifetime.Client), 10) + " days\n  ")
 	w.WriteString(exp("Issued", 18) + strconv.FormatUint(uint64(len(s.CA.Issued)), 10) + "\n")
 	w.WriteString("  " + exp("CA", 18) + s.CA.File() + "\n")
 	if c := s.CA.Certificate(s.Service.Hostname); c != nil {
@@ -616,7 +623,7 @@ func (s *Server) writeConfigs(c string) error {
 		os.Chmod(filepath.Join(c, k), 0640)
 		s.log.Debug("[server/configs] %s: Wrote client config for %q to %q...", s.ID, k, c)
 	}
-	return filepath.Walk(s.dir, perms)
+	return filepath.WalkDir(s.dir, perms)
 }
 func (s *Server) notify(a action, m, d string) {
 	for i := range s.Config.Notify {
@@ -719,11 +726,12 @@ func (s *Server) generateDH(x context.Context, z bool) {
 	}
 	if err != nil {
 		s.log.Error("[server/gendh] %s: Error generating DHParams: %s!", s.ID, err.Error())
-		s.manager.Callback(s, err)
 	} else {
 		s.log.Info("[server/gendh] %s: DHParam generation complete!", s.ID)
 	}
-	if atomic.StoreUint32(&s.active, 0); err != nil {
+	atomic.StoreUint32(&s.active, 0)
+	s.lock.Unlock()
+	if s.manager.Callback(s, err); err != nil {
 		return
 	}
 	if z {
@@ -944,8 +952,12 @@ func (s *Server) profile(c *pki.Certificate, p []byte) ([]byte, error) {
 			d = append(d, u+"6")
 		}
 	}
+	if len(s.Network.Range.Start) > 0 && len(s.Network.Range.End) > 0 {
+		d = append(d, o.Get(s, "dev", "tap"))
+	} else {
+		d = append(d, o.Get(s, "dev", "tun"))
+	}
 	d = append(d, []string{
-		o.Get(s, "dev", "tun"),
 		o.Get(s, "remote", s.Service.Hostname+" "+strconv.FormatUint(uint64(s.Service.Port), 10)),
 		"script-security 0",
 		o.Get(s, "remote-cert-tls", "server"),
@@ -1044,7 +1056,6 @@ func (s *Server) writeFile(o override, m *pki.Certificate, p, t, c, e string) er
 		}
 	}
 	d = append(d, []string{
-		o.Get(s, "dev", "tun"),
 		o.Get(s, "ca", s.CA.File()),
 		o.Get(s, "cert", m.File),
 		o.Get(s, "key", m.Key),
@@ -1058,7 +1069,7 @@ func (s *Server) writeFile(o override, m *pki.Certificate, p, t, c, e string) er
 			break
 		}
 	}
-	if err != nil {
+	if d = []string{}; err != nil {
 		f.Close()
 		return xerr.Wrap(`cannot write to "`+p+`"`, err)
 	}
@@ -1082,8 +1093,10 @@ func (s *Server) writeFile(o override, m *pki.Certificate, p, t, c, e string) er
 	}
 	if len(s.Network.Range.Start) > 0 && len(s.Network.Range.End) > 0 {
 		d = append(d, o.Get(s, "ifconfig-pool", s.Network.Range.Start+" "+s.Network.Range.End+" "+s.Network.Range.Mask))
+		d = append(d, o.Get(s, "dev", "tap"))
 	} else {
 		d = append(d, o.Get(s, "server", s.Network.Range.Base+" "+s.Network.Range.Mask))
+		d = append(d, o.Get(s, "dev", "tun"))
 	}
 	d = append(d, []string{
 		o.Get(s, "topology", "subnet"),

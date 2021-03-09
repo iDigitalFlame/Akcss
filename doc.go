@@ -16,6 +16,28 @@
 
 package akcss
 
+const config = `{
+    "log": {
+        "level": 0,
+        "path": "/tmp/akcss.log"
+    },
+    "dirs": {
+        "ca": "/etc/akcss/certs",
+        "temp": "/var/run/akcss",
+        "config": "/etc/akcss/servers"
+    },
+    "sock": "unix:/var/run/akcss.sock",
+    "email": {
+        "host": "",
+        "sender": "",
+        "username": "",
+        "password": ""
+    },
+    "bailtime": 15,
+    "exit_om_error": true
+}
+`
+
 const usage = `Akcss - OpenVPN Manager
 iDigitalFlame 2021 (idigitalflame.com)
 
@@ -23,6 +45,10 @@ General
   -c                              Configuration file path, defaults
                                    to "akcss.conf" or "${AKCSS_CONF}".
   -r                              Send a reload signal to the daemon.
+  -d                              Print default config and exit.
+  --no-fault                      Ignore startup errors and continue anyway.
+                                   Applies only to daemon mode and allows fixing
+                                   configuration errors.
   --daemon                        Start in daemon mode.
 
 Server Commands
@@ -115,8 +141,9 @@ Server Options (for --new and --edit)
     --dh-size     <0|2048|[4096]> Size of the initial DHparam file.
                                    Can be 2048 or 4096, defaults to 4096.
                                    Size of 0 can omit DHparam generation.
-    --no-dh                       Remove DHParams file and data. Similar to
-                                   (--dh-path "" --dh-size 0).
+    --no-dh                       Remove DHParams file and data.
+    --force                       Do not ask for confirmation before removing.
+                                   Used with (--no-dh)
 
   TLS Secrets Options
     --tls-path     <file path>    Use the supplied file path for TLS secrets
@@ -163,12 +190,13 @@ Client Actions
     --force                       Do not ask for confirmation before deleting.
 
   Additional Options (for --new-client)
-    --days        <1-65536: 365> Days the new client certificate is valid for.
+    --days        <1-65536: 365>  Days the new client certificate is valid for.
                                    Defaults to 365 days (1 year).
-    --client-days <1-65536: 365> Alias of "--days" when creating a new client.
+    --client-days <1-65536: 365>  Alias of "--days" when creating a new client.
     --file        <file>          Output the client profile to the supplied file.
                                    Defaults to standard output.
-
+    --email       <email>         Client administrative email. Receives new profile
+                                   email.
 Notification Actions
   --notify        <ID>            List notifiers for the server.
   --del-notify    <ID> <email>    Delete notification entries for this address.

@@ -41,6 +41,7 @@ type flags struct {
 		}
 		Soft   bool
 		Force  bool
+		Fault  bool
 		Output string
 		Config string
 		Option struct {
@@ -57,6 +58,7 @@ type flags struct {
 		Stop   bool
 		Start  bool
 		Renew  bool
+		Config bool
 		Status bool
 		Daemon bool
 		Reload bool
@@ -230,6 +232,9 @@ func (f *flags) parse() {
 	if v, ok := os.LookupEnv("AKCSS_CONF"); ok {
 		f.Args.Config = v
 	}
+	if len(f.Args.Config) == 0 {
+		f.Args.Config = "/etc/akcss.conf"
+	}
 }
 func (f *flags) valid() bool {
 	return f.Command.CRL || f.Command.List || f.Command.Stop || f.Command.Start || f.Command.Renew || f.Command.Show ||
@@ -238,16 +243,18 @@ func (f *flags) valid() bool {
 		f.Command.Option.New || f.Command.Option.List || f.Command.Option.Delete ||
 		f.Command.Option.Client.New || f.Command.Option.Client.List || f.Command.Option.Client.Delete ||
 		f.Command.Client.New || f.Command.Client.Delete ||
-		f.Command.Notify.New || f.Command.Notify.List || f.Command.Notify.Delete
+		f.Command.Notify.New || f.Command.Notify.List || f.Command.Notify.Delete || f.Command.Config
 }
 func (f *flags) setup() *flags {
 	f.FlagSet = flag.NewFlagSet("Akcss - OpenVPN Manager", flag.ContinueOnError)
 	f.FlagSet.Usage = func() {}
 
 	// General
-	f.StringVar(&f.Args.Config, "c", "akcss.conf", "")
+	f.StringVar(&f.Args.Config, "c", "", "")
 	f.BoolVar(&f.Command.Reload, "r", false, "")
 	f.BoolVar(&f.Command.Daemon, "daemon", false, "")
+	f.BoolVar(&f.Command.Config, "d", false, "")
+	f.BoolVar(&f.Args.Fault, "no-fault", false, "")
 
 	// Boolean Multi Pointers
 	var s, r = flagBooleans{&f.Command.Start, &f.details.Restart},
@@ -411,12 +418,6 @@ func (d details) verify(n bool) error {
 	}
 	if d.Network.Range.Mask.S && len(d.Network.Range.Mask.V) == 0 {
 		return xerr.Wrap("network mask", errNotEmpty)
-	}
-	if d.Network.Range.End.S && len(d.Network.Range.End.V) == 0 {
-		return xerr.Wrap("network range end", errNotEmpty)
-	}
-	if d.Network.Range.Start.S && len(d.Network.Range.Start.V) == 0 {
-		return xerr.Wrap("network range start", errNotEmpty)
 	}
 	if d.Service.Auth.File.S && len(d.Service.Auth.File.V) > 0 {
 		if _, err := os.Stat(d.Service.Auth.File.V); err != nil {

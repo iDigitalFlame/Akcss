@@ -22,7 +22,6 @@ import (
 	"io"
 	"net"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -291,7 +290,7 @@ func write(x context.Context, s string, n message) (*message, error) {
 		c   net.Conn
 		err error
 	)
-	if strings.HasPrefix("unix:", strings.ToLower(s)) {
+	if isUnix(s) {
 		c, err = local.DialContext(x, "unix", s[5:])
 	} else {
 		c, err = local.DialContext(x, "tcp", s)

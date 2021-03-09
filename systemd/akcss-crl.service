@@ -1,0 +1,29 @@
+[Unit]
+After                   = syslog.target network-online.target
+Wants                   = network-online.target
+Description             = Akcss CRL Generation Service
+
+[Service]
+Type                    = simple
+User                    = root
+Group                   = root
+ExecStart               = /usr/bin/akcss --crl -c /etc/akcss.conf
+KillSignal              = SIGINT
+PrivateTmp              = true
+KeyringMode             = private
+ProtectHome             = true
+ProtectClock            = true
+PrivateUsers            = false
+ProtectSystem           = strict
+ReadWritePaths          = /var/run
+PrivateDevices          = true
+NoNewPrivileges         = true
+LockPersonality         = true
+RestrictRealtime        = true
+RestrictSUIDSGID        = true
+ProtectKernelLogs       = true
+RestrictNamespaces      = true
+ProtectControlGroups    = true
+ProtectKernelModules    = true
+ProtectKernelTunables   = true
+RestrictAddressFamilies = AF_INET AF_INET6 AF_UNIX
