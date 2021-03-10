@@ -45,14 +45,15 @@ var serials = sync.Pool{
 // Authority is a struct that contains a listing of Certificates and can generate a full PKI stack.
 // This struct can be Marshaled into JSON to save/load the PKI configuration.
 type Authority struct {
-	Issued    []*Certificate `json:"certificates"`
-	Subject   Subject        `json:"subject"`
-	Lifetime  Lifetime       `json:"lifetime"`
-	Directory string         `json:"dir"`
-
 	key  *ecdsa.PrivateKey
 	cert *x509.Certificate
-	lock sync.RWMutex
+
+	Subject   Subject        `json:"subject"`
+	Directory string         `json:"dir"`
+	Issued    []*Certificate `json:"certificates"`
+	lock      sync.RWMutex
+
+	Lifetime Lifetime `json:"lifetime"`
 }
 
 func random() *big.Int {

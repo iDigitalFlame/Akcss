@@ -54,13 +54,12 @@ const (
 // Server is a struct that contains the configuration information for a OpenVPN server. This can
 // be used to control a running server or start a new one.
 type Server struct {
-	ID string         `json:"id"`
-	CA *pki.Authority `json:"ca"`
-	DH struct {
-		Size uint16 `json:"size"`
-		Data []byte `json:"data,omitempty"`
-		File string `json:"file,omitempty"`
-	} `json:"dh"`
+	log     logx.Log
+	manager manager
+	cancel  context.CancelFunc
+	e       *exec.Cmd
+
+	CA     *pki.Authority `json:"ca"`
 	Config struct {
 		Auto   bool `json:"autostart"`
 		Limits struct {
@@ -77,16 +76,6 @@ type Server struct {
 			Server string `json:"server,omitempty"`
 		} `json:"override"`
 	} `json:"config"`
-	Network struct {
-		Range struct {
-			End   string `json:"end,omitempty"`
-			Mask  string `json:"mask"`
-			Base  string `json:"base"`
-			Start string `json:"start,omitempty"`
-		} `json:"range"`
-		Saved     []string `json:"saved,omitempty"`
-		Crosstalk bool     `json:"crosstalk"`
-	} `json:"network"`
 	Service struct {
 		Auth struct {
 			File string `json:"file,omitempty"`
@@ -97,15 +86,28 @@ type Server struct {
 		Protocol protocol            `json:"protocol"`
 		Hostname string              `json:"hostname"`
 	} `json:"server"`
+	DH struct {
+		Size uint16 `json:"size"`
+		Data []byte `json:"data,omitempty"`
+		File string `json:"file,omitempty"`
+	} `json:"dh"`
+	ID  string `json:"id"`
+	dir string
 
-	e       *exec.Cmd
-	std     bytes.Buffer
-	log     logx.Log
-	dir     string
-	lock    sync.Mutex
-	active  uint32
-	cancel  context.CancelFunc
-	manager manager
+	Network struct {
+		Range struct {
+			End   string `json:"end,omitempty"`
+			Mask  string `json:"mask"`
+			Base  string `json:"base"`
+			Start string `json:"start,omitempty"`
+		} `json:"range"`
+		Saved     []string `json:"saved,omitempty"`
+		Crosstalk bool     `json:"crosstalk"`
+	} `json:"network"`
+
+	std    bytes.Buffer
+	lock   sync.Mutex
+	active uint32
 }
 type writer interface {
 	io.StringWriter

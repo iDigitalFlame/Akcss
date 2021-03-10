@@ -39,14 +39,15 @@ var (
 // Certificate is a struct representation of an x509 Certificate. This struct contains some functions for convince
 // and easy management. The certificate data is not loaded from the specified file path until it is needed.
 type Certificate struct {
-	Key               string            `json:"key_file,omitempty"`
-	File              string            `json:"cert_file,omitempty"`
-	Name              string            `json:"name,omitempty"`
-	Serial            big.Int           `json:"serial"`
-	Status            status            `json:"status,omitempty"`
-	Revoked           *time.Time        `json:"revoked,omitempty"`
 	PrivateKey        *ecdsa.PrivateKey `json:"-"`
 	*x509.Certificate `json:"-"`
+
+	Revoked *time.Time `json:"revoked,omitempty"`
+	Name    string     `json:"name,omitempty"`
+	Key     string     `json:"key_file,omitempty"`
+	File    string     `json:"cert_file,omitempty"`
+	Serial  big.Int    `json:"serial"`
+	Status  status     `json:"status,omitempty"`
 }
 
 // Revoke will revoke the Certificate if not already revoked. This function does not return any values. The CRL
