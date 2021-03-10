@@ -27,14 +27,14 @@ type typeServer struct {
 }
 type typeOption struct {
 	ID     string `json:"id"`
-	Push   bool   `json:"push,omitempty"`
 	Value  string `json:"value"`
-	Config bool   `json:"config,omitempty"`
 	Client string `json:"client"`
+	Push   bool   `json:"push,omitempty"`
+	Config bool   `json:"config,omitempty"`
 }
 type typeStatus struct {
-	PID    uint64       `json:"pid"`
 	Status []vpn.Status `json:"status,omitempty"`
+	PID    uint64       `json:"pid"`
 }
 type typeNotify struct {
 	ID     string `json:"id"`
@@ -51,8 +51,8 @@ type typeConnect struct {
 type typeClientNew struct {
 	ID    string `json:"id"`
 	Name  string `json:"name"`
-	Days  uint16 `json:"days,omitempty"`
 	Email string `json:"email,omitempty"`
+	Days  uint16 `json:"days,omitempty"`
 }
 type typeClientList struct {
 	Clients []string `json:"clients"`
@@ -76,12 +76,12 @@ type typeClientDelete struct {
 }
 type typeServerListObj struct {
 	ID       string `json:"id"`
+	Protocol string `json:"proto,omitempty"`
+	Hostname string `json:"name"`
 	PID      uint64 `json:"pid,omitempty"`
 	Port     uint16 `json:"port"`
 	Auto     bool   `json:"auto,omitempty"`
 	Running  bool   `json:"running,omitempty"`
-	Protocol string `json:"proto,omitempty"`
-	Hostname string `json:"name"`
 }
 
 func (d details) id() string {

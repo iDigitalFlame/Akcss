@@ -26,9 +26,9 @@ import (
 )
 
 type server struct {
+	*vpn.Server
 	file string
 	lock locker
-	*vpn.Server
 }
 type locker struct {
 	state uint32

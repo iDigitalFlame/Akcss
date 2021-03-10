@@ -61,35 +61,35 @@ type Server struct {
 
 	CA     *pki.Authority `json:"ca"`
 	Config struct {
-		Auto   bool `json:"autostart"`
-		Limits struct {
+		Override struct {
+			Client string `json:"client,omitempty"`
+			Server string `json:"server,omitempty"`
+		} `json:"override"`
+		Notify  []notification `json:"notify,omitempty"`
+		Options []option       `json:"options,omitempty"`
+		Limits  struct {
 			Max       uint16 `json:"max_clients"`
 			KeepAlive struct {
 				Timeout  uint16 `json:"timeout"`
 				Interval uint16 `json:"interval"`
 			} `json:"keep_alive"`
 		} `json:"limits"`
-		Notify   []notification `json:"notify,omitempty"`
-		Options  []option       `json:"options,omitempty"`
-		Override struct {
-			Client string `json:"client,omitempty"`
-			Server string `json:"server,omitempty"`
-		} `json:"override"`
+		Auto bool `json:"autostart"`
 	} `json:"config"`
 	Service struct {
-		Auth struct {
+		Clients  map[string][]string `json:"client_config,omitempty"`
+		Hostname string              `json:"hostname"`
+		Auth     struct {
 			File string `json:"file,omitempty"`
 			Data []byte `json:"data,omitempty"`
 		} `json:"auth"`
-		Port     uint16              `json:"port"`
-		Clients  map[string][]string `json:"client_config,omitempty"`
-		Protocol protocol            `json:"protocol"`
-		Hostname string              `json:"hostname"`
+		Port     uint16   `json:"port"`
+		Protocol protocol `json:"protocol"`
 	} `json:"server"`
 	DH struct {
-		Size uint16 `json:"size"`
-		Data []byte `json:"data,omitempty"`
 		File string `json:"file,omitempty"`
+		Data []byte `json:"data,omitempty"`
+		Size uint16 `json:"size"`
 	} `json:"dh"`
 	ID  string `json:"id"`
 	dir string

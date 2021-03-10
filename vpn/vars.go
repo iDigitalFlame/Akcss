@@ -59,13 +59,13 @@ type Status struct {
 	Cipher string    `json:"cipher"`
 }
 type option struct {
-	Push   bool   `json:"push,omitempty"`
 	Value  string `json:"value"`
+	Push   bool   `json:"push,omitempty"`
 	Client bool   `json:"client,omitempty"`
 }
 type overvalue struct {
-	Unset bool
 	Value string
+	Unset bool
 }
 type notification struct {
 	Email  string `json:"email"`

@@ -34,23 +34,28 @@ var (
 )
 
 type flags struct {
+	*flag.FlagSet
+	sock string
+
 	Args struct {
 		File struct {
 			DH   string
 			Auth string
 		}
-		Soft   bool
-		Force  bool
-		Fault  bool
-		Output string
-		Config string
-		Option struct {
+		Actions string
+		Output  string
+		Config  string
+		Option  struct {
 			Push   bool
 			Config bool
 		}
-		Actions string
+		Force bool
+		Fault bool
+		Soft  bool
 	}
-	Extra   []string
+	Extra []string
+	details
+
 	Command struct {
 		CRL    bool
 		List   bool
@@ -90,33 +95,9 @@ type flags struct {
 		}
 		Restart bool
 	}
-
-	sock string
-	*flag.FlagSet
-	details
 }
 type details struct {
-	ID string `json:"id"`
-	DH struct {
-		Size  flagUint16 `json:"size,omitempty"`
-		Data  []byte     `json:"data,omitempty"`
-		File  flagString `json:"file,omitempty"`
-		Empty bool       `json:"empty,omitempty"`
-	} `json:"dh"`
-	Config struct {
-		Auto   flagBool `json:"auto,omitempty"`
-		Limits struct {
-			Max       flagUint16 `json:"max,omitempty"`
-			KeepAlive struct {
-				Timeout  flagUint16 `json:"timeout,omitempty"`
-				Interval flagUint16 `json:"interval,omitempty"`
-			} `json:"keep_alive"`
-		} `json:"limits"`
-		Override struct {
-			Client flagString `json:"client,omitempty"`
-			Server flagString `json:"server,omitempty"`
-		}
-	} `json:"config"`
+	ID      string `json:"id"`
 	Network struct {
 		Range struct {
 			End   flagString `json:"end,omitempty"`
@@ -126,42 +107,62 @@ type details struct {
 		} `json:"range"`
 		Crosstalk flagBool `json:"cross,omitempty"`
 	} `json:"network"`
-	Service struct {
-		Auth struct {
-			File  flagString `json:"file,omitempty"`
-			Data  []byte     `json:"data,omitempty"`
-			Empty bool       `json:"empty,omitempty"`
-		} `json:"auth"`
-		Port     flagUint16 `json:"port,omitempty"`
-		Protocol flagString `json:"proto,omitempty"`
-		Hostname flagString `json:"hostname,omitempty"`
-	} `json:"server"`
-	Restart bool `json:"now,omitempty"`
+	DH struct {
+		File  flagString `json:"file,omitempty"`
+		Data  []byte     `json:"data,omitempty"`
+		Size  flagUint16 `json:"size,omitempty"`
+		Empty bool       `json:"empty,omitempty"`
+	} `json:"dh"`
 	Subject struct {
-		CA   flagString `json:"ca,omitempty"`
-		ZIP  flagString `json:"zip,omitempty"`
-		City flagString `json:"city,omitempty"`
-		Days struct {
-			CA     flagUint16 `json:"ca,omitempty"`
-			Client flagUint16 `json:"client,omitempty"`
-			Server flagUint16 `json:"server,omitempty"`
-		}
+		CA           flagString `json:"ca,omitempty"`
+		ZIP          flagString `json:"zip,omitempty"`
+		City         flagString `json:"city,omitempty"`
+		Department   flagString `json:"dept,omitempty"`
 		State        flagString `json:"state,omitempty"`
 		Email        flagString `json:"email,omitempty"`
 		Street       flagString `json:"street,omitempty"`
 		Domain       flagString `json:"domain,omitempty"`
 		Country      flagString `json:"country,omitempty"`
-		Department   flagString `json:"dept,omitempty"`
 		Organization flagString `json:"org,omitempty"`
+		Days         struct {
+			CA     flagUint16 `json:"ca,omitempty"`
+			Client flagUint16 `json:"client,omitempty"`
+			Server flagUint16 `json:"server,omitempty"`
+		}
 	} `json:"subject"`
+	Service struct {
+		Protocol flagString `json:"proto,omitempty"`
+		Hostname flagString `json:"hostname,omitempty"`
+		Auth     struct {
+			File  flagString `json:"file,omitempty"`
+			Data  []byte     `json:"data,omitempty"`
+			Empty bool       `json:"empty,omitempty"`
+		} `json:"auth"`
+		Port flagUint16 `json:"port,omitempty"`
+	} `json:"server"`
+	Config struct {
+		Override struct {
+			Client flagString `json:"client,omitempty"`
+			Server flagString `json:"server,omitempty"`
+		}
+		Limits struct {
+			Max       flagUint16 `json:"max,omitempty"`
+			KeepAlive struct {
+				Timeout  flagUint16 `json:"timeout,omitempty"`
+				Interval flagUint16 `json:"interval,omitempty"`
+			} `json:"keep_alive"`
+		} `json:"limits"`
+		Auto flagBool `json:"auto,omitempty"`
+	} `json:"config"`
+	Restart bool `json:"now,omitempty"`
 }
 type flagBool struct {
 	S bool `json:"set,omitempty"`
 	V bool `json:"val,omitempty"`
 }
 type flagString struct {
-	S bool   `json:"set,omitempty"`
 	V string `json:"val,omitempty"`
+	S bool   `json:"set,omitempty"`
 }
 type flagUint16 struct {
 	S bool   `json:"set,omitempty"`

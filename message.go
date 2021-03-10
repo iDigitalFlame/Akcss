@@ -81,10 +81,9 @@ var (
 )
 
 type message struct {
+	e      interface{}
 	Data   []byte
 	Action uint8
-
-	e interface{}
 }
 type payload interface {
 	id() string

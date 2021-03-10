@@ -44,35 +44,34 @@ var (
 )
 
 type manager struct {
-	Config struct {
-		Log struct {
-			Path  string `json:"path,omitempty"`
-			Level uint8  `json:"level"`
-		} `json:"log"`
-		Fail bool `json:"exit_on_error"`
-		Dirs struct {
-			CA     string `json:"ca"`
-			Temp   string `json:"temp,omitempty"`
-			Config string `json:"config"`
-		} `json:"dirs"`
+	log     logx.Log
+	err     error
+	cancel  context.CancelFunc
+	deliver chan mail
+	servers map[string]*server
+	Config  struct {
 		Email struct {
 			Host     string `json:"host"`
 			From     string `json:"sender"`
 			Username string `json:"username"`
 			Password string `json:"password"`
 		} `json:"email"`
-		Socket  string `json:"sock,omitempty"`
-		Bailout uint8  `json:"bailtime,omitempty"`
+		Dirs struct {
+			CA     string `json:"ca"`
+			Temp   string `json:"temp,omitempty"`
+			Config string `json:"config"`
+		} `json:"dirs"`
+		Socket string `json:"sock,omitempty"`
+		Log    struct {
+			Path  string `json:"path,omitempty"`
+			Level uint8  `json:"level"`
+		} `json:"log"`
+		Fail    bool  `json:"exit_on_error"`
+		Bailout uint8 `json:"bailtime,omitempty"`
 	}
-
-	log     logx.Log
-	err     error
 	lock    sync.RWMutex
-	fault   bool
-	cancel  context.CancelFunc
 	startup uint32
-	deliver chan mail
-	servers map[string]*server
+	fault   bool
 }
 
 func daemon(f string, t bool) error {
