@@ -1,4 +1,4 @@
-// Copyright (C) 2021 iDigitalFlame
+// Copyright (C) 2021 - 2022 iDigitalFlame
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,7 +21,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"io"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"strconv"
@@ -36,8 +35,11 @@ var (
 	errPrivateKey = xerr.New("no private key found")
 )
 
-// Certificate is a struct representation of an x509 Certificate. This struct contains some functions for convince
-// and easy management. The certificate data is not loaded from the specified file path until it is needed.
+// Certificate is a struct representation of an x509 Certificate. This struct
+// contains some functions for convince and easy management.
+//
+// The certificate data is not loaded from the specified file path until it is
+// needed.
 type Certificate struct {
 	PrivateKey        *ecdsa.PrivateKey `json:"-"`
 	*x509.Certificate `json:"-"`
@@ -50,11 +52,11 @@ type Certificate struct {
 	Status  status     `json:"status,omitempty"`
 }
 
-// Revoke will revoke the Certificate if not already revoked. This function does not return any values. The CRL
-// must be regenerated using the 'Authority.Update()' function in order to take affect.
+// Revoke will revoke the Certificate if not already revoked. This function does
+// not return any values. The CRL must be regenerated using the 'Authority.Update()'
+// function in order to take affect.
 func (c *Certificate) Revoke() {
-	c.PrivateKey = nil
-	c.Status = statusRevoked
+	c.PrivateKey, c.Status = nil, statusRevoked
 }
 func (c *Certificate) init() error {
 	if c.Certificate != nil {
@@ -63,7 +65,7 @@ func (c *Certificate) init() error {
 	if len(c.File) == 0 {
 		return errRevoked
 	}
-	b, err := ioutil.ReadFile(c.File)
+	b, err := os.ReadFile(c.File)
 	if err != nil {
 		return err
 	}
@@ -77,13 +79,13 @@ func (c *Certificate) init() error {
 	if len(c.Key) == 0 {
 		return nil
 	}
-	if _, err := os.Stat(c.Key); err != nil {
+	if _, err = os.Stat(c.Key); err != nil {
 		if os.IsNotExist(err) {
 			return nil
 		}
 		return err
 	}
-	if b, err = ioutil.ReadFile(c.Key); err != nil {
+	if b, err = os.ReadFile(c.Key); err != nil {
 		return err
 	}
 	if d, _ = pem.Decode(b); d == nil {
@@ -105,8 +107,9 @@ func (c *Certificate) String() string {
 	return c.Name + " (" + strconv.FormatUint(c.SerialNumber.Uint64(), 16) + ")"
 }
 
-// Write writes the data of this Certificate to the specified Writer. This function will return any errors that
-// occurred during the encoding process.
+// Write writes the data of this Certificate to the specified Writer.
+//
+// This function will return any errors that occurred during the encoding process.
 func (c *Certificate) Write(w io.Writer) error {
 	if err := c.init(); err != nil {
 		return err
@@ -119,12 +122,9 @@ func (c *Certificate) writeKey(s string) error {
 		return err
 	}
 	err = c.WriteKey(f)
-	err2 := f.Close()
-	if err != nil {
-		return err
-	}
+	f.Close()
 	os.Chmod(s, 0400)
-	return err2
+	return err
 }
 func (c *Certificate) writeFile(s string) error {
 	f, err := os.OpenFile(s, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0640)
@@ -132,12 +132,9 @@ func (c *Certificate) writeFile(s string) error {
 		return err
 	}
 	err = c.Write(f)
-	err2 := f.Close()
-	if err != nil {
-		return err
-	}
+	f.Close()
 	os.Chmod(s, 0640)
-	return err2
+	return err
 }
 
 // WriteKey will attempt to write the PrivateKey for this Certificate to the specified Writer. This function
@@ -166,7 +163,7 @@ func (c *Certificate) ValidFor(d time.Duration) bool {
 	if c.Certificate == nil {
 		return false
 	}
-	if t := time.Now().Add(d); t.After(c.Certificate.NotAfter) {
+	if t := time.Now().Add(d); t.After(c.NotAfter) {
 		return false
 	}
 	return true

@@ -1,4 +1,4 @@
-// Copyright (C) 2021 iDigitalFlame
+// Copyright (C) 2021 - 2022 iDigitalFlame
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@ package akcss
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"os"
 	"sync"
 	"sync/atomic"
 
@@ -31,8 +31,8 @@ type server struct {
 	lock locker
 }
 type locker struct {
-	state uint32
 	sync.Mutex
+	state uint32
 }
 type header struct {
 	ID string `json:"id"`
@@ -51,7 +51,7 @@ func (s *server) Save() error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(s.file, b, 0600)
+	return os.WriteFile(s.file, b, 0600)
 }
 func (l *locker) Locked() bool {
 	return atomic.LoadUint32(&l.state) == 1

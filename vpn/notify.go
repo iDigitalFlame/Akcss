@@ -1,4 +1,4 @@
-// Copyright (C) 2021 iDigitalFlame
+// Copyright (C) 2021 - 2022 iDigitalFlame
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -17,7 +17,6 @@
 package vpn
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -154,7 +153,7 @@ func (a action) String() string {
 	if a == actionAll {
 		return "all"
 	}
-	b := builders.Get().(*bytes.Buffer)
+	var b strings.Builder
 	if a&actionCRL != 0 {
 		b.WriteString("crl")
 	}
@@ -208,7 +207,6 @@ func (a action) String() string {
 	}
 	s := b.String()
 	b.Reset()
-	builders.Put(b)
 	return s
 }
 func (s *Server) actionCRL(l string) {

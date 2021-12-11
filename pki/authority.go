@@ -1,4 +1,4 @@
-// Copyright (C) 2021 iDigitalFlame
+// Copyright (C) 2021 - 2022 iDigitalFlame
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,7 +24,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"io"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -35,14 +34,9 @@ import (
 	"github.com/iDigitalFlame/akcss/xerr"
 )
 
-var serials = sync.Pool{
-	New: func() interface{} {
-		b := make([]byte, 8)
-		return &b
-	},
-}
-
-// Authority is a struct that contains a listing of Certificates and can generate a full PKI stack.
+// Authority is a struct that contains a listing of Certificates and can generate
+// a full PKI stack.
+//
 // This struct can be Marshaled into JSON to save/load the PKI configuration.
 type Authority struct {
 	key  *ecdsa.PrivateKey
@@ -59,11 +53,10 @@ type Authority struct {
 func random() *big.Int {
 	var (
 		n = new(big.Int)
-		b = *serials.Get().(*[]byte)
+		b [8]byte
 	)
-	rand.Read(b)
-	n.SetBytes(b)
-	serials.Put(&b)
+	rand.Read(b[:])
+	n.SetBytes(b[:])
 	return n
 }
 func (a *Authority) init() error {
@@ -73,7 +66,7 @@ func (a *Authority) init() error {
 	var (
 		c      = filepath.Join(a.Directory, "ca.crt")
 		k      = filepath.Join(a.Directory, "ca.pem")
-		b, err = ioutil.ReadFile(c)
+		b, err = os.ReadFile(c)
 	)
 	if err != nil {
 		return err
@@ -85,7 +78,7 @@ func (a *Authority) init() error {
 	if a.cert, err = x509.ParseCertificate(d.Bytes); err != nil {
 		return xerr.Wrap(`certificate "`+c+`" could not be parsed`, err)
 	}
-	if b, err = ioutil.ReadFile(k); err != nil {
+	if b, err = os.ReadFile(k); err != nil {
 		return err
 	}
 	if d, _ = pem.Decode(b); d == nil {
@@ -175,15 +168,14 @@ func (a *Authority) crl() ([]Update, error) {
 		return nil, err
 	}
 	err = pem.Encode(f, &pem.Block{Type: "X509 CRL", Bytes: b})
-	if err := f.Close(); err != nil {
-		return nil, err
-	}
+	f.Close()
 	os.Chmod(filepath.Join(a.Directory, "crl.pem"), 0644)
 	return s, err
 }
 
-// Write writes the data of the CA Certificate to the specified Writer. This function will return any errors
-// that occurred during the encoding process.
+// Write writes the data of the CA Certificate to the specified Writer.
+//
+// This function will return any errors that occurred during the encoding process.
 func (a *Authority) Write(w io.Writer) error {
 	if err := a.init(); err != nil {
 		return err
@@ -191,9 +183,11 @@ func (a *Authority) Write(w io.Writer) error {
 	return pem.Encode(w, &pem.Block{Type: "CERTIFICATE", Bytes: a.cert.Raw})
 }
 
-// Update will generate the CRL file and save it under the 'Directory' path. This function will also save the
-// Authority certificate and key files, if not yet created. Any certificates that have been revoked or expired will
-// be saved once this function is called.
+// Update will generate the CRL file and save it under the 'Directory' path.
+//
+// This function will also save the Authority certificate and key files, if not
+// yet created. Any certificates that have been revoked or expired will be saved
+// once this function is called.
 func (a *Authority) Update() ([]Update, error) {
 	r, err := a.crl()
 	if err != nil {
@@ -212,12 +206,8 @@ func (a *Authority) Update() ([]Update, error) {
 			return r, err
 		}
 		err = pem.Encode(f, &pem.Block{Type: "CERTIFICATE", Bytes: a.cert.Raw})
-		err2 := f.Close()
-		if err != nil {
+		if f.Close(); err != nil {
 			return r, xerr.Wrap(`could not encode certificate to "`+c+`"`, err)
-		}
-		if err2 != nil {
-			return r, xerr.Wrap(`could not close "`+k+`"`, err2)
 		}
 		os.Chmod(c, 0644)
 	}
@@ -234,20 +224,16 @@ func (a *Authority) Update() ([]Update, error) {
 			return r, err
 		}
 		err = pem.Encode(f, &pem.Block{Type: "EC PRIVATE KEY", Bytes: b})
-		err2 := f.Close()
-		if err != nil {
+		if f.Close(); err != nil {
 			return r, xerr.Wrap(`could not encode private key to "`+k+`"`, err)
-		}
-		if err2 != nil {
-			return r, xerr.Wrap(`could not close "`+k+`"`, err2)
 		}
 		os.Chmod(k, 0400)
 	}
 	return r, nil
 }
 
-// Certificate will attempt to get the Certificate by the supplied subject name. If no Certificate is found that
-// matches, nil is returned.
+// Certificate will attempt to get the Certificate by the supplied subject name.
+// If no Certificate is found that matches, nil is returned.
 func (a *Authority) Certificate(n string) *Certificate {
 	var (
 		c *Certificate
@@ -274,8 +260,8 @@ func (a *Authority) Certificate(n string) *Certificate {
 	return c
 }
 
-// New creates a new Authority with the following options, Name, FileSystem directory, length of the CA certificate
-// and the initial Authority Subject details.
+// New creates a new Authority with the following options, Name, FileSystem directory,
+// length of the CA certificate and the initial Authority Subject details.
 func New(name, dir string, days uint64, s Subject) (*Authority, error) {
 	if i, err := os.Stat(dir); err != nil {
 		if !os.IsNotExist(err) {
@@ -310,8 +296,11 @@ func New(name, dir string, days uint64, s Subject) (*Authority, error) {
 	return a, nil
 }
 
-// CreateClient attempts to create a new client certificate from this CA. The name and email are recommended,
-// but optional. If the days parameter is less than or equal to zero, the default CA client timespan will be used.
+// CreateClient attempts to create a new client certificate from this CA. The name
+// and email are recommended, but optional.
+//
+// If the days parameter is less than or equal to zero, the default CA client timespan
+// will be used.
 func (a *Authority) CreateClient(name, email string, days int) (*Certificate, error) {
 	if days <= 0 {
 		days = a.Lifetime.client()
@@ -319,8 +308,11 @@ func (a *Authority) CreateClient(name, email string, days int) (*Certificate, er
 	return a.createCert(name, email, uint64(days), x509.KeyUsageDigitalSignature, x509.ExtKeyUsageClientAuth)
 }
 
-// CreateServer attempts to create a new server certificate from this CA. The name and email are recommended,
-// but optional. If the days parameter is less than or equal to zero, the default CA server timespan will be used.
+// CreateServer attempts to create a new server certificate from this CA. The name
+// and email are recommended, but optional.
+//
+// If the days parameter is less than or equal to zero, the default CA server timespan
+// will be used.
 func (a *Authority) CreateServer(name, email string, days int) (*Certificate, error) {
 	if days <= 0 {
 		days = a.Lifetime.server()
@@ -342,7 +334,7 @@ func (a *Authority) createCert(name, email string, days uint64, use x509.KeyUsag
 		if !os.IsNotExist(err) {
 			return nil, err
 		}
-		if err := os.MkdirAll(d, 0700); err != nil {
+		if err = os.MkdirAll(d, 0700); err != nil {
 			return nil, err
 		}
 		os.Chmod(d, 0700)

@@ -1,4 +1,4 @@
-// Copyright (C) 2021 iDigitalFlame
+// Copyright (C) 2021 - 2022 iDigitalFlame
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,7 +21,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -51,8 +50,8 @@ const (
 	ipRoute2 = false
 )
 
-// Server is a struct that contains the configuration information for a OpenVPN server. This can
-// be used to control a running server or start a new one.
+// Server is a struct that contains the configuration information for a OpenVPN
+// server. This can be used to control a running server or start a new one.
 type Server struct {
 	log     logx.Log
 	manager manager
@@ -151,7 +150,7 @@ func (s *Server) wait() {
 	}
 	s.std.Reset()
 	s.log.Trace("[server/wait] %s: Wait ended!", s.ID)
-	if b, err := ioutil.ReadFile(filepath.Join(s.dir, "ip.log")); err == nil {
+	if b, err2 := os.ReadFile(filepath.Join(s.dir, "ip.log")); err2 == nil {
 		var (
 			i int
 			x = strings.Split(string(b), "\n")
@@ -167,7 +166,7 @@ func (s *Server) wait() {
 		s.log.Warning("[server/wait] %s: Could not save IP state entries: %s!", s.ID, err.Error())
 	}
 	if !debug {
-		if err := os.RemoveAll(s.dir); err != nil {
+		if err2 := os.RemoveAll(s.dir); err2 != nil {
 			s.log.Warning("[server/wait] %s: Could not remove server directory %q: %s!", s.ID, s.dir, err.Error())
 		}
 	}
@@ -176,19 +175,20 @@ func (s *Server) wait() {
 	s.manager.Callback(s, err)
 }
 
-// CRL will attempt to generate the CRL file for this Server. This will also send any emails for notifications that
-// are configured.
+// CRL will attempt to generate the CRL file for this Server. This will also send
+// any emails for notifications that are configured.
 func (s *Server) CRL() error {
 	return s.crl(false, true, "")
 }
 
-// Stop will gracefull stop the server and save any stored IP options in the struct. This will also remove the server
-// runtime directory.
+// Stop will gracefull stop the server and save any stored IP options in the struct.
+// This will also remove the server runtime directory.
 func (s *Server) Stop() error {
 	return s.stop(true)
 }
 
-// Pid returns the Server process ID. If the server is not running, this function returns zero.
+// Pid returns the Server process ID. If the server is not running, this function
+// returns zero.
 func (s *Server) Pid() uint64 {
 	if atomic.LoadUint32(&s.active) == 0 || s.e == nil || s.e.Process == nil {
 		return 0
@@ -242,10 +242,7 @@ func (s *Server) start() error {
 			break
 		}
 	}
-	if err := f.Close(); err != nil {
-		return xerr.Wrap(`could not close ip table "`+t+`"`, err)
-	}
-	if err != nil {
+	if f.Close(); err != nil {
 		return xerr.Wrap(`could not write ip table "`+t+`"`, err)
 	}
 	r := s.CA.Certificate(s.Service.Hostname)
@@ -274,8 +271,8 @@ func (s *Server) start() error {
 	return nil
 }
 
-// Start will begin the process of creating the server directory, generating the server config and starting the
-// primary server process.
+// Start will begin the process of creating the server directory, generating the
+// server config and starting the primary server process.
 func (s *Server) Start() error {
 	if atomic.LoadUint32(&s.active) > 0 {
 		return errRunning
@@ -303,8 +300,7 @@ func (s *Server) Running() bool {
 // Print will write the server details to the specified writer.
 func (s *Server) Print(w writer) {
 	w.WriteString("Server " + s.ID + "\n\n")
-	w.WriteString(exp("Auto Start", 20))
-	if s.Config.Auto {
+	if w.WriteString(exp("Auto Start", 20)); s.Config.Auto {
 		w.WriteString("Yes\n")
 	} else {
 		w.WriteString("No\n")
@@ -326,8 +322,7 @@ func (s *Server) Print(w writer) {
 		w.WriteString("  " + exp("Range", 18) + s.Network.Range.Base + "\n")
 	}
 	w.WriteString("  " + exp("Range Mask", 18) + s.Network.Range.Mask + "\n")
-	w.WriteString("  " + exp("Crosstalk", 18))
-	if s.Network.Crosstalk {
+	if w.WriteString("  " + exp("Crosstalk", 18)); s.Network.Crosstalk {
 		w.WriteString("Yes\n")
 	} else {
 		w.WriteString("No\n")
@@ -410,8 +405,9 @@ func (s *Server) Print(w writer) {
 	}
 }
 
-// Restart will gracefull stop the server and save any stored IP options in the struct. Once complete, this function
-// will regenerate the server configuration files and will start up the server.
+// Restart will gracefull stop the server and save any stored IP options in the
+// struct. Once complete, this function will regenerate the server configuration
+// files and will start up the server.
 func (s *Server) Restart() error {
 	i := atomic.LoadUint32(&s.active)
 	if i == 2 {
@@ -452,9 +448,7 @@ func (s *Server) stop(n bool) error {
 	}
 	s.log.Debug("[server/stop] %s: Waiting for process to complete.", s.ID)
 	s.lock.Lock()
-	if !t.Stop() {
-		<-t.C
-	}
+	t.Stop()
 	s.log.Debug("[server/stop] %s: Stop complete.", s.ID)
 	if s.lock.Unlock(); n {
 		s.actionStop()
@@ -505,8 +499,8 @@ func (s *Server) renew(h string) error {
 	return s.start()
 }
 
-// Reload will update the Server's info with the new data supplied. This function will trigger a certificate renew
-// if the hostname changes.
+// Reload will update the Server's info with the new data supplied. This function
+// will trigger a certificate renew if the hostname changes.
 func (s *Server) Reload(b []byte) error {
 	if atomic.LoadUint32(&s.active) == 2 {
 		return errBlocked
@@ -524,8 +518,9 @@ func (s *Server) Reload(b []byte) error {
 	return nil
 }
 
-// Init is a function only to called on a newly created server instance. This sets up the un-exported
-// properties of the struct. This function returns the server instance.
+// Init is a function only to called on a newly created server instance. This sets
+// up the un-exported properties of the struct. This function returns the server
+// instance.
 func (s *Server) Init(m manager) *Server {
 	s.dir, s.log, s.manager = filepath.Join(m.Dir(), s.ID), m.Log(), m
 	s.Service.Hostname = parseName(s.Service.Hostname)
@@ -545,15 +540,15 @@ func (s *Server) ChangeName(n string) error {
 	return s.renew(o)
 }
 
-// Status will return an array of connected clients and some basic info, such as how long connected and local/remote
-// IP addresses.
+// Status will return an array of connected clients and some basic info, such as
+// how long connected and local/remote IP addresses.
 func (s *Server) Status() ([]Status, error) {
 	if i := atomic.LoadUint32(&s.active); i == 0 {
 		return nil, errNotRunning
 	} else if i == 2 {
 		return nil, nil
 	}
-	b, err := ioutil.ReadFile(filepath.Join(s.dir, "status.log"))
+	b, err := os.ReadFile(filepath.Join(s.dir, "status.log"))
 	if err != nil {
 		return nil, err
 	}
@@ -587,7 +582,8 @@ func (s *Server) Status() ([]Status, error) {
 	return r, err
 }
 
-// RemoveNotify will remove the email address associated with any notification events, if it exists.
+// RemoveNotify will remove the email address associated with any notification
+// events, if it exists.
 func (s *Server) RemoveNotify(email string) {
 	var (
 		l = make([]notification, 0, len(s.Config.Notify))
@@ -616,10 +612,7 @@ func (s *Server) writeConfigs(c string) error {
 				break
 			}
 		}
-		if err := f.Close(); err != nil {
-			return xerr.Wrap(`could not close client "`+k+`"`, err)
-		}
-		if err != nil {
+		if f.Close(); err != nil {
 			return xerr.Wrap(`could not write client "`+k+`"`, err)
 		}
 		os.Chmod(filepath.Join(c, k), 0640)
@@ -637,8 +630,9 @@ func (s *Server) notify(a action, m, d string) {
 	}
 }
 
-// Load will create and setup the initial properties of a Server struct from the provided arguments and the
-// data contained in the JSON byte array. This function returns any errors made during reading/parsing.
+// Load will create and setup the initial properties of a Server struct from the
+// provided arguments and the data contained in the JSON byte array. This function
+// returns any errors made during reading/parsing.
 func Load(b []byte, m manager) (*Server, error) {
 	var s Server
 	if err := json.Unmarshal(b, &s); err != nil {
@@ -742,8 +736,10 @@ func (s *Server) generateDH(x context.Context, z bool) {
 	}
 }
 
-// AddNotify will add the email address to the server to be notified on the supplied events. This function
-// returns an error if the event names are not valid. Empty events are considered to be "all".
+// AddNotify will add the email address to the server to be notified on the supplied
+// events. This function returns an error if the event names are not valid.
+//
+// Empty events are considered to be "all".
 func (s *Server) AddNotify(email, events string) error {
 	var (
 		a    action
@@ -783,9 +779,11 @@ func (s *Server) AddNotify(email, events string) error {
 	return nil
 }
 
-// AddOption will add the server option value to appear in the generated configuration files and profiles.
-// The push option will add the option as a "push" value and config will add the value to each newly generated
-// client profile. The changes will be applied on a server restart.
+// AddOption will add the server option value to appear in the generated configuration
+// files and profiles. The push option will add the option as a "push" value and
+// config will add the value to each newly generated client profile.
+//
+// The changes will be applied on a server restart.
 func (s *Server) AddOption(value string, push, config bool) {
 	for _, x := range s.Config.Options {
 		if x.Value == value && x.Push == push && x.Client == config {
@@ -795,8 +793,10 @@ func (s *Server) AddOption(value string, push, config bool) {
 	s.Config.Options = append(s.Config.Options, option{Value: strings.TrimSpace(value), Push: push, Client: config})
 }
 
-// AddClientOption will add the specified value into a client specific config for the server. The changes will be
-// effective immediately and do NOT require a server restart.
+// AddClientOption will add the specified value into a client specific config
+// for the server.
+//
+// The changes will be effective immediately and do NOT require a server restart.
 func (s *Server) AddClientOption(client, value string) error {
 	var (
 		n = strings.ToLower(strings.TrimSpace(parseName(client)))
@@ -893,8 +893,9 @@ func (s *Server) prep(x context.Context, z bool) (bool, error) {
 	return false, nil
 }
 
-// RemoveOption will attempt to remove the specified option value from the server. This function will need to match
-// the original push and config values in order to remove the correct option.
+// RemoveOption will attempt to remove the specified option value from the server.
+// This function will need to match the original push and config values in order
+// to remove the correct option.
 func (s *Server) RemoveOption(value string, push, config bool) {
 	var (
 		l = make([]option, 0, len(s.Config.Options))
@@ -909,8 +910,10 @@ func (s *Server) RemoveOption(value string, push, config bool) {
 	s.Config.Options = l
 }
 
-// RemoveClientOption will remove the specified value from a client specific config for the server. The changes will be
-// effective immediately and do NOT require a server restart.
+// RemoveClientOption will remove the specified value from a client specific config
+// for the server.
+//
+// The changes will be effective immediately and do NOT require a server restart.
 func (s *Server) RemoveClientOption(client, value string) error {
 	var (
 		n     = strings.ToLower(strings.TrimSpace(parseName(client)))
@@ -993,7 +996,7 @@ func (s *Server) profile(c *pki.Certificate, p []byte) ([]byte, error) {
 	if ipRoute2 {
 		d = append(d, o.Get(s, "enable-iproute2", ""))
 	}
-	b := builders.Get().(*bytes.Buffer)
+	var b bytes.Buffer
 	for i := range d {
 		if len(d[i]) == 0 {
 			continue
@@ -1007,21 +1010,18 @@ func (s *Server) profile(c *pki.Certificate, p []byte) ([]byte, error) {
 		b.WriteString(x.Value + "\n")
 	}
 	b.WriteString("<ca>\n")
-	if err := s.CA.Write(b); err != nil {
+	if err := s.CA.Write(&b); err != nil {
 		b.Reset()
-		builders.Put(b)
 		return nil, xerr.Wrap("could not write CA", err)
 	}
 	b.WriteString("</ca>\n<cert>\n")
-	if err := c.Write(b); err != nil {
+	if err := c.Write(&b); err != nil {
 		b.Reset()
-		builders.Put(b)
 		return nil, xerr.Wrap("could not write certificate", err)
 	}
 	b.WriteString("</cert>\n<key>\n")
-	if err := c.WriteKey(b); err != nil {
+	if err := c.WriteKey(&b); err != nil {
 		b.Reset()
-		builders.Put(b)
 		return nil, xerr.Wrap("could not write private key", err)
 	}
 	b.WriteString("</key>\n<tls-crypt-v2>\n")
@@ -1029,7 +1029,6 @@ func (s *Server) profile(c *pki.Certificate, p []byte) ([]byte, error) {
 	b.WriteString("</tls-crypt-v2>\n")
 	r := b.Bytes()
 	b.Reset()
-	builders.Put(b)
 	return r, nil
 }
 func (s *Server) writeFile(o override, m *pki.Certificate, p, t, c, e string) error {
@@ -1186,15 +1185,12 @@ func (s *Server) writeFile(o override, m *pki.Certificate, p, t, c, e string) er
 			}
 		}
 	}
-	err2 := f.Close()
-	if os.Chmod(p, 0400); err != nil {
-		return err
-	}
-	return err2
+	os.Chmod(p, 0400)
+	return err
 }
 
-// NewClient will generate the client key material based on the server TLS data and will return the VPN profile
-// as a byte array
+// NewClient will generate the client key material based on the server TLS data
+// and will return the VPN profile as a byte array
 func (s *Server) NewClient(name, email string, days int) ([]byte, *pki.Certificate, []byte, error) {
 	if atomic.LoadUint32(&s.active) == 2 {
 		return nil, nil, nil, errBlocked
@@ -1210,7 +1206,7 @@ func (s *Server) NewClient(name, email string, days int) ([]byte, *pki.Certifica
 	s.log.Info("[server/newclient] %s: Attempting to create a client certificate for %q...", s.ID, name)
 	k := s.Service.Auth.File
 	if len(k) == 0 {
-		f, err := ioutil.TempFile("", s.ID+"-server-*.key")
+		f, err := os.CreateTemp("", s.ID+"-server-*.key")
 		if err != nil {
 			return nil, nil, nil, xerr.Wrap("could not create temp file for key", err)
 		}
@@ -1225,7 +1221,7 @@ func (s *Server) NewClient(name, email string, days int) ([]byte, *pki.Certifica
 	}
 	o, err := exec.Command("openvpn", "--tls-crypt-v2", k, "--genkey", "tls-crypt-v2-client").Output()
 	if len(s.Service.Auth.File) == 0 {
-		if err := os.Remove(k); err != nil {
+		if err = os.Remove(k); err != nil {
 			s.log.Warning("[server/newclient] %s: Error attempting to remove temp file %q: %s!", s.ID, k, err.Error())
 		}
 	}

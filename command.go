@@ -1,4 +1,4 @@
-// Copyright (C) 2021 iDigitalFlame
+// Copyright (C) 2021 - 2022 iDigitalFlame
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@ package akcss
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -43,8 +42,8 @@ var (
 	errUnexpected = xerr.New("unexpected server response")
 )
 
-// Start is the primary command line function start point for Akcss, which will parse the flags and create
-// the Akcss instance.
+// Start is the primary command line function start point for Akcss, which will
+// parse the flags and create the Akcss instance.
 func Start() {
 	if f := new(flags).setup(); f.valid() {
 		if err := f.exec(); err != nil {
@@ -64,7 +63,7 @@ func (f flags) exec() error {
 	if f.Command.Daemon {
 		return daemon(f.Args.Config, f.Args.Fault)
 	}
-	if f.Command.Inline && (f.details.Service.Hostname.V == "c" || f.details.Service.Hostname.V == "d") {
+	if f.Command.Inline && (f.Service.Hostname.V == "c" || f.Service.Hostname.V == "d") {
 		if f.sock = socket; len(f.Extra) >= 1 && len(f.Extra[0]) > 0 {
 			f.sock = f.Extra[0]
 		}
@@ -75,7 +74,7 @@ func (f flags) exec() error {
 			d, ok3  = os.LookupEnv("time_duration")
 			r6, ok4 = os.LookupEnv("untrusted_ip6")
 		)
-		if f.details.Service.Hostname.V == "c" {
+		if f.Service.Hostname.V == "c" {
 			if !ok || (!ok1 && !ok4) || !ok2 {
 				return errNoEnv
 			}
@@ -95,7 +94,7 @@ func (f flags) exec() error {
 			ID: f.ID, Name: n, Local: l, Duration: time.Duration(i) * time.Second,
 		})
 	}
-	b, err := ioutil.ReadFile(f.Args.Config)
+	b, err := os.ReadFile(f.Args.Config)
 	if err != nil {
 		return xerr.Wrap(`unable to read "`+f.Args.Config+`"`, err)
 	}
@@ -170,12 +169,12 @@ func (f flags) action() error {
 		if err := f.verify(false); err != nil {
 			return err
 		}
-		if f.details.DH.Empty && !f.Args.Force {
+		if f.DH.Empty && !f.Args.Force {
 			if !confirm(`Are you sure you want to reset the server "`+f.ID+`" dhparam? [y/N]`, false) {
 				return errAborted
 			}
 		}
-		if f.details.Service.Auth.Empty && !f.Args.Force {
+		if f.Service.Auth.Empty && !f.Args.Force {
 			if !confirm(
 				`Are you sure you want to reset the server "`+f.ID+`" TLS-AUTH`+
 					"\nThis will affect all previously created profiles? [y/N]", false,
@@ -210,7 +209,7 @@ func (f flags) action() error {
 			os.Stdout.WriteString("\n")
 			return nil
 		}
-		return ioutil.WriteFile(f.Args.Output, r.Data, 0600)
+		return os.WriteFile(f.Args.Output, r.Data, 0600)
 	case f.Command.Client.Delete:
 		if !f.Service.Hostname.S || len(f.Service.Hostname.V) == 0 {
 			return errNoName

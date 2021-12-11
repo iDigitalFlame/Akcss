@@ -1,4 +1,4 @@
-// Copyright (C) 2021 iDigitalFlame
+// Copyright (C) 2021 - 2022 iDigitalFlame
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@ const config = `{
 `
 
 const usage = `Akcss - OpenVPN Manager
-iDigitalFlame 2021 (idigitalflame.com)
+iDigitalFlame 2021 - 2022 (idigitalflame.com)
 
 General
   -c                              Configuration file path, defaults

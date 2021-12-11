@@ -1,4 +1,4 @@
-// Copyright (C) 2021 iDigitalFlame
+// Copyright (C) 2021 - 2022 iDigitalFlame
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -301,20 +301,20 @@ func (m *manager) process(x context.Context, n message) (*message, error) {
 			m.log.Error("[daemon/process/new] Received an existing server ID %q for new server request!", i)
 			return nil, xerr.New(`server with ID "` + i + `" already exists`)
 		}
-		v, ok := n.e.(*details)
-		if !ok {
+		v, ok2 := n.e.(*details)
+		if !ok2 {
 			m.log.Error("[daemon/process/new] Received an invalid message payload type %T!", n.e)
 			return nil, errInvalidPayload
 		}
 		m.log.Trace("[daemon/process/new] Attempting to acquire manager lock...")
 		m.lock.Lock()
 		m.log.Trace("[daemon/process/new] Manager lock acquired.")
-		if err := v.verify(true); err != nil {
+		if err = v.verify(true); err != nil {
 			m.log.Error("[daemon/process/new] Could not validate new server details: %s!", err.Error())
 			m.lock.Unlock()
 			return nil, err
 		}
-		s, err := m.new(x, v)
+		s, err = m.new(x, v)
 		if err != nil {
 			m.log.Error("[daemon/process/new] Attemtping to create a new server %q failed: %s!", i, err.Error())
 		}
@@ -456,8 +456,8 @@ func (s *server) process(x context.Context, m *manager, n message) (*message, bo
 		}
 		return nil, true, nil
 	case actionNotifyList:
-		v := typeNotifyList{Notifiers: make([]typeNotify, 0, len(s.Server.Config.Notify))}
-		for _, z := range s.Server.Config.Notify {
+		v := typeNotifyList{Notifiers: make([]typeNotify, 0, len(s.Config.Notify))}
+		for _, z := range s.Config.Notify {
 			v.Notifiers = append(v.Notifiers, typeNotify{Email: z.Email, Action: z.Events.String()})
 		}
 		o, err := json.Marshal(v)
@@ -509,8 +509,8 @@ func (s *server) process(x context.Context, m *manager, n message) (*message, bo
 		s.AddOption(v.Value, v.Push, v.Config)
 		return nil, true, nil
 	case actionOptionList:
-		v := typeOptionList{Options: make([]typeOption, 0, len(s.Server.Config.Options))}
-		for _, z := range s.Server.Config.Options {
+		v := typeOptionList{Options: make([]typeOption, 0, len(s.Config.Options))}
+		for _, z := range s.Config.Options {
 			v.Options = append(v.Options, typeOption{Push: z.Push, Value: z.Value, Config: z.Client})
 		}
 		o, err := json.Marshal(v)
@@ -588,7 +588,7 @@ func (s *server) process(x context.Context, m *manager, n message) (*message, bo
 		}
 		if m.log.Info("[daemon/process/deleteserver] %s: Deleting server...", s.ID); s.Running() {
 			m.log.Debug("[daemon/process/deleteserver] %s: Stopping running server.", s.ID)
-			if err := s.Server.Stop(); err != nil {
+			if err := s.Stop(); err != nil {
 				m.log.Error("[dameon/process/deleteserver] %s: Stopping server failed: %s!", s.ID, err.Error())
 				return nil, false, err
 			}

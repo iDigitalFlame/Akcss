@@ -1,4 +1,4 @@
-// Copyright (C) 2021 iDigitalFlame
+// Copyright (C) 2021 - 2022 iDigitalFlame
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -17,16 +17,13 @@
 package vpn
 
 import (
-	"bytes"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"os/user"
 	"runtime"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/iDigitalFlame/akcss/xerr"
@@ -38,14 +35,7 @@ const (
 	UDP = protocol(false)
 )
 
-var (
-	nobody   = 0
-	builders = sync.Pool{
-		New: func() interface{} {
-			return new(bytes.Buffer)
-		},
-	}
-)
+var nobody = 0
 
 type protocol bool
 type action uint16
@@ -112,19 +102,12 @@ func lastMessage(s string) string {
 	if err != nil {
 		return ""
 	}
-	i, err := os.Stat(s)
-	if err != nil {
-		return ""
-	}
-	n := i.Size() - 350
-	if n < 0 {
-		n = 0
-	}
-	b := builders.Get().(*bytes.Buffer)
-	_, err = io.Copy(b, f)
+	f.Seek(350, 2)
+	var b strings.Builder
+	_, err = io.Copy(&b, f)
 	v := b.String()
 	b.Reset()
-	if builders.Put(b); err != nil {
+	if f.Close(); err != nil {
 		return ""
 	}
 	return v
@@ -133,7 +116,7 @@ func loadOverride(f string) (override, error) {
 	if len(f) == 0 {
 		return nil, nil
 	}
-	b, err := ioutil.ReadFile(f)
+	b, err := os.ReadFile(f)
 	if err != nil {
 		return nil, err
 	}

@@ -1,4 +1,4 @@
-// Copyright (C) 2021 iDigitalFlame
+// Copyright (C) 2021 - 2022 iDigitalFlame
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@ package akcss
 
 import (
 	"flag"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -174,7 +173,7 @@ type boolean interface {
 type flagBooleans []*bool
 
 func (f *flags) parse() {
-	if err := f.FlagSet.Parse(os.Args[1:]); err != nil {
+	if err := f.Parse(os.Args[1:]); err != nil {
 		if err == flag.ErrHelp {
 			os.Stderr.WriteString(usage)
 			os.Exit(2)
@@ -221,13 +220,13 @@ func (f *flags) parse() {
 		i++
 	}
 	if len(f.Extra) == 1 {
-		f.details.ID, f.Extra = f.Extra[0], nil
+		f.ID, f.Extra = f.Extra[0], nil
 	} else if len(f.Extra) >= 2 {
-		if f.details.Service.Hostname.S {
-			f.details.ID, f.Extra = f.Extra[0], f.Extra[1:]
+		if f.Service.Hostname.S {
+			f.ID, f.Extra = f.Extra[0], f.Extra[1:]
 		} else {
-			f.details.Service.Hostname.Set(f.Extra[1])
-			f.details.ID, f.Extra = f.Extra[0], f.Extra[2:]
+			f.Service.Hostname.Set(f.Extra[1])
+			f.ID, f.Extra = f.Extra[0], f.Extra[2:]
 		}
 	}
 	if v, ok := os.LookupEnv("AKCSS_CONF"); ok {
@@ -258,8 +257,7 @@ func (f *flags) setup() *flags {
 	f.BoolVar(&f.Args.Fault, "no-fault", false, "")
 
 	// Boolean Multi Pointers
-	var s, r = flagBooleans{&f.Command.Start, &f.details.Restart},
-		flagBooleans{&f.Command.Restart, &f.details.Restart}
+	var s, r = flagBooleans{&f.Command.Start, &f.Restart}, flagBooleans{&f.Command.Restart, &f.Restart}
 
 	// Server Commands
 	f.BoolVar(&f.Command.List, "list", false, "")
@@ -278,51 +276,51 @@ func (f *flags) setup() *flags {
 	f.BoolVar(&f.Command.Server.Delete, "delete", false, "")
 
 	// Server Options (for --new and --edit)
-	f.Var(&f.details.Service.Hostname, "hostname", "")
-	f.Var(&f.details.Service.Port, "port", "")
-	f.Var(&f.details.Service.Protocol, "proto", "")
-	f.Var(&f.details.Config.Auto, "auto", "")
-	f.Var(&f.details.Config.Limits.Max, "limit", "")
-	f.Var(&f.details.Config.Limits.KeepAlive.Timeout, "timeout", "")
-	f.Var(&f.details.Config.Limits.KeepAlive.Interval, "interval", "")
-	f.Var(&f.details.Subject.Days.Server, "days", "")
-	f.Var(&f.details.Subject.Days.Client, "client-days", "")
-	f.Var(&f.details.Subject.Days.Server, "server-days", "")
-	f.Var(&f.details.Config.Override.Client, "over-client", "")
-	f.Var(&f.details.Config.Override.Server, "over-server", "")
+	f.Var(&f.Service.Hostname, "hostname", "")
+	f.Var(&f.Service.Port, "port", "")
+	f.Var(&f.Service.Protocol, "proto", "")
+	f.Var(&f.Config.Auto, "auto", "")
+	f.Var(&f.Config.Limits.Max, "limit", "")
+	f.Var(&f.Config.Limits.KeepAlive.Timeout, "timeout", "")
+	f.Var(&f.Config.Limits.KeepAlive.Interval, "interval", "")
+	f.Var(&f.Subject.Days.Server, "days", "")
+	f.Var(&f.Subject.Days.Client, "client-days", "")
+	f.Var(&f.Subject.Days.Server, "server-days", "")
+	f.Var(&f.Config.Override.Client, "over-client", "")
+	f.Var(&f.Config.Override.Server, "over-server", "")
 
 	// VPN Network Options
-	f.Var(&f.details.Network.Crosstalk, "crosstalk", "")
-	f.Var(&f.details.Network.Range.Base, "net", "")
-	f.Var(&f.details.Network.Range.Start, "net-start", "")
-	f.Var(&f.details.Network.Range.End, "net-end", "")
-	f.Var(&f.details.Network.Range.Mask, "net-mask", "")
+	f.Var(&f.Network.Crosstalk, "crosstalk", "")
+	f.Var(&f.Network.Range.Base, "net", "")
+	f.Var(&f.Network.Range.Start, "net-start", "")
+	f.Var(&f.Network.Range.End, "net-end", "")
+	f.Var(&f.Network.Range.Mask, "net-mask", "")
 
 	// CA Options (only valid for --new)
-	f.Var(&f.details.Subject.CA, "ca", "")
-	f.Var(&f.details.Subject.Days.CA, "ca-days", "")
+	f.Var(&f.Subject.CA, "ca", "")
+	f.Var(&f.Subject.Days.CA, "ca-days", "")
 
 	// Certificate Subject Options
-	f.Var(&f.details.Subject.Organization, "org", "")
-	f.Var(&f.details.Subject.Department, "dept", "")
-	f.Var(&f.details.Subject.Street, "street", "")
-	f.Var(&f.details.Subject.City, "city", "")
-	f.Var(&f.details.Subject.State, "state", "")
-	f.Var(&f.details.Subject.Country, "country", "")
-	f.Var(&f.details.Subject.Domain, "domain", "")
-	f.Var(&f.details.Subject.Email, "email", "")
+	f.Var(&f.Subject.Organization, "org", "")
+	f.Var(&f.Subject.Department, "dept", "")
+	f.Var(&f.Subject.Street, "street", "")
+	f.Var(&f.Subject.City, "city", "")
+	f.Var(&f.Subject.State, "state", "")
+	f.Var(&f.Subject.Country, "country", "")
+	f.Var(&f.Subject.Domain, "domain", "")
+	f.Var(&f.Subject.Email, "email", "")
 
 	// DH Options
-	f.Var(&f.details.DH.File, "dh-path", "")
+	f.Var(&f.DH.File, "dh-path", "")
 	f.StringVar(&f.Args.File.DH, "dh-file", "", "")
-	f.Var(&f.details.DH.Size, "dh-size", "")
-	f.BoolVar(&f.details.DH.Empty, "no-dh", false, "")
+	f.Var(&f.DH.Size, "dh-size", "")
+	f.BoolVar(&f.DH.Empty, "no-dh", false, "")
 
 	// TLS Secrets Options
-	f.Var(&f.details.Service.Auth.File, "tls-path", "")
+	f.Var(&f.Service.Auth.File, "tls-path", "")
 	f.StringVar(&f.Args.File.Auth, "tls-file", "", "")
-	f.BoolVar(&f.details.Service.Auth.Empty, "tls-gen", false, "")
-	f.BoolVar(&f.details.Service.Auth.Empty, "tls-reset", false, "")
+	f.BoolVar(&f.Service.Auth.Empty, "tls-gen", false, "")
+	f.BoolVar(&f.Service.Auth.Empty, "tls-reset", false, "")
 
 	// Server Options (for --delete)
 	f.BoolVar(&f.Args.Force, "force", false, "")
@@ -378,12 +376,12 @@ func (f flagUint16) String() string {
 func (f *flags) verify(n bool) error {
 	var err error
 	if len(f.Args.File.DH) > 0 {
-		if f.details.DH.Data, err = ioutil.ReadFile(f.Args.File.DH); err != nil {
+		if f.DH.Data, err = os.ReadFile(f.Args.File.DH); err != nil {
 			return err
 		}
 	}
 	if len(f.Args.File.Auth) > 0 {
-		if f.details.Service.Auth.Data, err = ioutil.ReadFile(f.Args.File.Auth); err != nil {
+		if f.Service.Auth.Data, err = os.ReadFile(f.Args.File.Auth); err != nil {
 			return err
 		}
 	}
@@ -481,9 +479,10 @@ func (f *flagUint16) Set(v string) error {
 	n, err := strconv.ParseUint(v, 10, 16)
 	if err != nil {
 		if e, ok := err.(*strconv.NumError); ok {
-			if e.Err == strconv.ErrRange {
+			switch e.Err {
+			case strconv.ErrRange:
 				return xerr.New(`number "` + v + `" cannot be larger than "65535"`)
-			} else if e.Err == strconv.ErrSyntax {
+			case strconv.ErrSyntax:
 				return xerr.New(`number "` + v + `" is invalid`)
 			}
 		}

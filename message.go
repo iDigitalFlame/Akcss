@@ -1,4 +1,4 @@
-// Copyright (C) 2021 iDigitalFlame
+// Copyright (C) 2021 - 2022 iDigitalFlame
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -76,8 +76,6 @@ var (
 		},
 	}
 	local = new(net.Dialer)
-
-	errMessageTooLarge = xerr.New("message size is too large")
 )
 
 type message struct {
@@ -231,50 +229,50 @@ func (m message) Write(w io.Writer) error {
 }
 func (m *message) Read(r io.Reader) error {
 	var (
-		b      = *bufs.Get().(*[]byte)
-		n, err = r.Read(b)
+		b      = bufs.Get().(*[]byte)
+		n, err = r.Read(*b)
 	)
 	if err != nil {
-		bufs.Put(&b)
+		bufs.Put(b)
 		return err
 	}
 	if n == 0 {
-		bufs.Put(&b)
+		bufs.Put(b)
 		return io.EOF
 	}
-	l := int(uint16(b[2]) | uint16(b[1])<<8)
-	m.Action, m.Data = b[0], make([]byte, n-3, l)
-	if copy(m.Data, b[3:n]); m.Action > responseError {
+	l := int(uint16((*b)[2]) | uint16((*b)[1])<<8)
+	m.Action, m.Data = (*b)[0], make([]byte, n-3, l)
+	if copy(m.Data, (*b)[3:n]); m.Action > responseError {
 		return xerr.New(`invalid action value "` + strconv.Itoa(int(m.Action)) + `"`)
 	}
 	for l -= len(m.Data); l > 0; {
-		if n, err = r.Read(b); err == io.EOF && n == 0 {
+		if n, err = r.Read(*b); err == io.EOF && n == 0 {
 			err = nil
 			break
 		}
 		if err != nil {
 			break
 		}
-		m.Data = append(m.Data, b[:n]...)
+		m.Data = append(m.Data, (*b)[:n]...)
 		l -= n
 	}
-	bufs.Put(&b)
+	bufs.Put(b)
 	return err
 }
 func raw(a uint8, d []byte, w io.Writer) error {
 	n := uint64(len(d))
 	if n > maxUint16 {
-		return errMessageTooLarge
+		return xerr.New("message size is too large")
 	}
 	var (
-		b   = *bufs.Get().(*[]byte)
+		b   = bufs.Get().(*[]byte)
 		err error
 	)
-	b[0], b[1], b[2] = a, byte(n>>8), byte(n)
-	if _, err = w.Write(b[0:3]); err == nil && len(d) > 0 {
+	(*b)[0], (*b)[1], (*b)[2] = a, byte(n>>8), byte(n)
+	if _, err = w.Write((*b)[0:3]); err == nil && len(d) > 0 {
 		_, err = w.Write([]byte(d))
 	}
-	bufs.Put(&b)
+	bufs.Put(b)
 	return err
 }
 func rawJSON(a uint8, v interface{}, w io.Writer) error {

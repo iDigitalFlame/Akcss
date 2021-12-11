@@ -1,4 +1,4 @@
-// Copyright (C) 2021 iDigitalFlame
+// Copyright (C) 2021 - 2022 iDigitalFlame
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@ package akcss
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/signal"
@@ -75,7 +74,7 @@ type manager struct {
 }
 
 func daemon(f string, t bool) error {
-	b, err := ioutil.ReadFile(f)
+	b, err := os.ReadFile(f)
 	if err != nil {
 		return err
 	}
@@ -84,9 +83,9 @@ func daemon(f string, t bool) error {
 		return xerr.Wrap(`unable to parse config "`+f+`"`, err)
 	}
 	if m.log = logx.Multiple(logx.Console(logx.Level(m.Config.Log.Level))); len(m.Config.Log.Path) > 0 {
-		n, err := logx.File(m.Config.Log.Path, logx.Level(m.Config.Log.Level))
-		if err != nil {
-			return xerr.Wrap(`could not create log "`+m.Config.Log.Path+``, err)
+		n, err2 := logx.File(m.Config.Log.Path, logx.Level(m.Config.Log.Level))
+		if err2 != nil {
+			return xerr.Wrap(`could not create log "`+m.Config.Log.Path+``, err2)
 		}
 		m.log.(*logx.Multi).Add(n)
 	}
@@ -110,7 +109,7 @@ func daemon(f string, t bool) error {
 		return xerr.Wrap(`could not listen on "`+m.Config.Socket+`"`, err)
 	}
 	if _, ok := l.(*net.UnixListener); ok {
-		if err := lookupNobody(); err != nil {
+		if err = lookupNobody(); err != nil {
 			m.log.Warning(`[daemon] Could not lookup the "nobody" user, you may have permission issues: %s!`, err.Error())
 		} else {
 			if err = os.Chown(m.Config.Socket[5:], 0, nobody); err != nil {
@@ -161,11 +160,11 @@ func daemon(f string, t bool) error {
 	case <-x.Done():
 	}
 	signal.Reset(syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	signal.Stop(w)
 	m.log.Info("[daemon] Shutting down and stopping threads...")
 	m.shutdown(l)
 	m.cancel()
-	z.Stop()
-	if len(m.deliver) > 0 {
+	if z.Stop(); len(m.deliver) > 0 {
 		m.log.Info("[daemon] Sending queued emails before shutdown...")
 		for i := len(m.deliver); i > 0; i = len(m.deliver) {
 			e := <-m.deliver
@@ -264,7 +263,7 @@ func (m *manager) reload() error {
 	m.log.Info("[daemon/reload] Reading %d server entries..", len(l))
 	for i := range l {
 		m.log.Debug("[daemon/reload] Reading file %q...", l[i])
-		if b, err = ioutil.ReadFile(l[i]); err != nil {
+		if b, err = os.ReadFile(l[i]); err != nil {
 			return err
 		}
 		if err = json.Unmarshal(b, &h); err != nil {
@@ -290,7 +289,7 @@ func (m *manager) reload() error {
 			continue
 		}
 		m.log.Debug("[daemon/reload] Server %q already exists, reloading from %q!", v.ID, l[i])
-		if err = v.Server.Reload(b); err != nil {
+		if err = v.Reload(b); err != nil {
 			return xerr.Wrap(`unable to reload server "`+v.ID+`"`, err)
 		}
 		if !valid(v.ID) {
@@ -355,8 +354,8 @@ func (m *manager) Callback(s *vpn.Server, err error) {
 		m.log.Warning("[daemon/callback] Received callback from unknown server %q!", s.ID)
 	}
 	if ok && i != nil {
-		if err := i.Save(); err != nil {
-			m.log.Error("[daemon/callback] %s: Error saving server: %s!", s.ID, err.Error())
+		if err2 := i.Save(); err != nil {
+			m.log.Error("[daemon/callback] %s: Error saving server: %s!", s.ID, err2.Error())
 		}
 	}
 	if err != nil {
