@@ -21,7 +21,7 @@ if [ $# -ge 1 ]; then
 fi
 
 printf "Building...\n"
-go build -trimpath -ldflags "-s -w" -o "$output" cmd/main.go
+go build -gcflags '-G=0' -buildvcs=false -trimpath -ldflags "-s -w" -o "$output" cmd/main.go
 
 which upx &> /dev/null
 if [ $? -eq 0 ] && [ -f "$output" ]; then
