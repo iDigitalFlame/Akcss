@@ -354,7 +354,7 @@ func (m *manager) Callback(s *vpn.Server, err error) {
 		m.log.Warning("[daemon/callback] Received callback from unknown server %q!", s.ID)
 	}
 	if ok && i != nil {
-		if err2 := i.Save(); err != nil {
+		if err2 := i.Save(); err2 != nil {
 			m.log.Error("[daemon/callback] %s: Error saving server: %s!", s.ID, err2.Error())
 		}
 	}
