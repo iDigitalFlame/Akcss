@@ -26,7 +26,7 @@ import (
 	"github.com/iDigitalFlame/akcss/xerr"
 )
 
-var mailer = &net.Dialer{Timeout: timeout, KeepAlive: timeout, DualStack: true}
+var mailer = &net.Dialer{Timeout: timeout, KeepAlive: timeout}
 
 type mail struct {
 	To      string

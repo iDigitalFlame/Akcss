@@ -35,7 +35,7 @@ var (
 	errPrivateKey = xerr.New("no private key found")
 )
 
-// Certificate is a struct representation of an x509 Certificate. This struct
+// Certificate is a struct representation of a x509 Certificate. This struct
 // contains some functions for convince and easy management.
 //
 // The certificate data is not loaded from the specified file path until it is
@@ -54,7 +54,7 @@ type Certificate struct {
 
 // Revoke will revoke the Certificate if not already revoked. This function does
 // not return any values. The CRL must be regenerated using the 'Authority.Update()'
-// function in order to take affect.
+// function in order to take effect.
 func (c *Certificate) Revoke() {
 	c.PrivateKey, c.Status = nil, statusRevoked
 }
@@ -155,7 +155,7 @@ func (c *Certificate) WriteKey(w io.Writer) error {
 }
 
 // ValidFor returns true if the certificate is valid and is not expired nor revoked and ensures it will be valid
-// for the suplied time duration.
+// for the supplied time duration.
 func (c *Certificate) ValidFor(d time.Duration) bool {
 	if !c.Valid() || c.init() != nil {
 		return false

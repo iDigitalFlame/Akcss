@@ -20,7 +20,7 @@ if [ $# -ge 1 ]; then
     output="$1"
 fi
 
-printf "Building...\n"
+echo "Building.."
 go build -buildvcs=false -trimpath -ldflags "-s -w" -o "$output" cmd/main.go
 
 which upx &> /dev/null
@@ -28,4 +28,4 @@ if [ $? -eq 0 ] && [ -f "$output" ]; then
     upx --compress-exports=1 --strip-relocs=1 --compress-icons=2 --best --no-backup -9 "$output"
 fi
 
-printf "Done!\n"
+echo "Done!"

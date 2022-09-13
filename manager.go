@@ -31,6 +31,7 @@ import (
 	"time"
 
 	"github.com/PurpleSec/logx"
+	"github.com/iDigitalFlame/akcss/userid"
 	"github.com/iDigitalFlame/akcss/vpn"
 	"github.com/iDigitalFlame/akcss/xerr"
 )
@@ -109,10 +110,10 @@ func daemon(f string, t bool) error {
 		return xerr.Wrap(`could not listen on "`+m.Config.Socket+`"`, err)
 	}
 	if _, ok := l.(*net.UnixListener); ok {
-		if err = lookupNobody(); err != nil {
-			m.log.Warning(`[daemon] Could not lookup the "nobody" user, you may have permission issues: %s!`, err.Error())
+		if n, err1 := userid.Nobody(); err1 != nil {
+			m.log.Warning(`[daemon] Could not lookup the "nobody" user, you may have permission issues: %s!`, err1.Error())
 		} else {
-			if err = os.Chown(m.Config.Socket[5:], 0, nobody); err != nil {
+			if err = os.Chown(m.Config.Socket[5:], 0, n); err != nil {
 				l.Close()
 				m.shutdown(l)
 				return xerr.Wrap(`could not set permissions on "`+m.Config.Socket+`"`, err)
@@ -417,7 +418,7 @@ func (m *manager) listen(x context.Context, l net.Listener) {
 				break
 			}
 			m.log.Error("[daemon/listen] Error occurred during accept: %s!", err.Error())
-			if ok && !e.Timeout() && !e.Temporary() {
+			if ok && !e.Timeout() {
 				break
 			}
 			continue
@@ -425,24 +426,9 @@ func (m *manager) listen(x context.Context, l net.Listener) {
 		if c == nil {
 			continue
 		}
-		if n, ok := c.(*net.UnixConn); ok {
-			var (
-				f *os.File
-				u *syscall.Ucred
-			)
-			if f, err = n.File(); err != nil {
-				m.log.Error("[daemon/listen] Could not grab file handle of socket: %s!", err.Error())
-				c.Close()
-				continue
-			}
-			if u, err = syscall.GetsockoptUcred(int(f.Fd()), syscall.SOL_SOCKET, syscall.SO_PEERCRED); err != nil {
-				m.log.Error("[daemon/listen] Could get file handle peer creds: %s!", err.Error())
-				f.Close()
-				c.Close()
-				continue
-			}
-			f.Close()
-			m.log.Trace("[daemon/listen] Connection established by PID: %d/UID: %d!", u.Pid, u.Uid)
+		if identify(m.log, c) != nil {
+			c.Close()
+			continue
 		}
 		go m.accept(x, c)
 	}

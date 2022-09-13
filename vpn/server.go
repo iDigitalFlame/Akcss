@@ -32,22 +32,23 @@ import (
 	"time"
 
 	"github.com/PurpleSec/logx"
+
 	"github.com/iDigitalFlame/akcss/pki"
 	"github.com/iDigitalFlame/akcss/xerr"
 )
 
 var (
-	errBlocked    = xerr.New("server is blocked on an operaton")
+	errBlocked    = xerr.New("server is blocked on an operation")
 	errRunning    = xerr.New("server is already running")
 	errInvalidID  = xerr.New("server ID cannot be empty")
 	errNotRunning = xerr.New("server is not running")
 )
 
 const (
-	debug    = false
+	debug    = false // Set to true to prevent Akcss from deleting generated Server files
 	grace    = time.Hour * 24
 	timeout  = time.Second * 15
-	ipRoute2 = false
+	ipRoute2 = false // Set to true to enable "iproute2" support
 )
 
 // Server is a struct that contains the configuration information for a OpenVPN
@@ -181,7 +182,7 @@ func (s *Server) CRL() error {
 	return s.crl(false, true, "")
 }
 
-// Stop will gracefull stop the server and save any stored IP options in the struct.
+// Stop will gracefully stop the server and save any stored IP options in the struct.
 // This will also remove the server runtime directory.
 func (s *Server) Stop() error {
 	return s.stop(true)
@@ -405,7 +406,7 @@ func (s *Server) Print(w writer) {
 	}
 }
 
-// Restart will gracefull stop the server and save any stored IP options in the
+// Restart will gracefully stop the server and save any stored IP options in the
 // struct. Once complete, this function will regenerate the server configuration
 // files and will start up the server.
 func (s *Server) Restart() error {
@@ -443,7 +444,7 @@ func (s *Server) stop(n bool) error {
 		if err == os.ErrProcessDone {
 			err = nil
 		} else {
-			s.log.Warning("[server/stop] %s: Sending stop singal failed: %s!", s.ID, err.Error())
+			s.log.Warning("[server/stop] %s: Sending stop signal failed: %s!", s.ID, err.Error())
 		}
 	}
 	s.log.Debug("[server/stop] %s: Waiting for process to complete.", s.ID)
@@ -630,7 +631,7 @@ func (s *Server) notify(a action, m, d string) {
 	}
 }
 
-// Load will create and setup the initial properties of a Server struct from the
+// Load will create and set up the initial properties of a Server struct from the
 // provided arguments and the data contained in the JSON byte array. This function
 // returns any errors made during reading/parsing.
 func Load(b []byte, m manager) (*Server, error) {

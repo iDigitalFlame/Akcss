@@ -270,7 +270,7 @@ func raw(a uint8, d []byte, w io.Writer) error {
 	)
 	(*b)[0], (*b)[1], (*b)[2] = a, byte(n>>8), byte(n)
 	if _, err = w.Write((*b)[0:3]); err == nil && len(d) > 0 {
-		_, err = w.Write([]byte(d))
+		_, err = w.Write(d)
 	}
 	bufs.Put(b)
 	return err

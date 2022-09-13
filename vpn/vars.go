@@ -20,12 +20,11 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"os/user"
 	"runtime"
-	"strconv"
 	"strings"
 	"time"
 
+	"github.com/iDigitalFlame/akcss/userid"
 	"github.com/iDigitalFlame/akcss/xerr"
 )
 
@@ -34,8 +33,6 @@ const (
 	TCP = protocol(true)
 	UDP = protocol(false)
 )
-
-var nobody = 0
 
 type protocol bool
 type action uint16
@@ -170,25 +167,15 @@ func perms(p string, d fs.DirEntry, _ error) error {
 	if runtime.GOOS == "windows" {
 		return nil
 	}
-	if nobody == 0 {
-		u, err := user.Lookup("nobody")
-		if err != nil {
-			return xerr.Wrap(`cannot lookup user "nobody"`, err)
-		}
-		if len(u.Uid) == 0 || u.Uid == "0" {
-			return xerr.New(`lookup for "nobody" returned invalid UID "` + u.Uid + `"`)
-		}
-		n, err := strconv.ParseInt(u.Uid, 10, 64)
-		if err != nil {
-			return xerr.Wrap(`cannot parse "nobody" UID "`+u.Uid+`"`, err)
-		}
-		nobody = int(n)
+	n, err := userid.Nobody()
+	if err != nil {
+		return err
 	}
 	if d.IsDir() {
 		if err := os.Chmod(p, 0750); err != nil {
 			return err
 		}
-		return os.Chown(p, 0, nobody)
+		return os.Chown(p, 0, n)
 	}
 	switch d.Name() {
 	case "ip.log":
@@ -197,7 +184,7 @@ func perms(p string, d fs.DirEntry, _ error) error {
 		if err := os.Chmod(p, 0660); err != nil {
 			return err
 		}
-		return os.Chown(p, 0, nobody)
+		return os.Chown(p, 0, n)
 	case "server.log":
 		if err := os.Chmod(p, 0600); err != nil {
 			return err
@@ -208,7 +195,7 @@ func perms(p string, d fs.DirEntry, _ error) error {
 	if err := os.Chmod(p, 0640); err != nil {
 		return err
 	}
-	return os.Chown(p, 0, nobody)
+	return os.Chown(p, 0, n)
 }
 func (o override) Get(s *Server, name, value string) string {
 	if len(o) == 0 {

@@ -19,16 +19,12 @@ package akcss
 import (
 	"io/fs"
 	"os"
-	"os/user"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
 
-	"github.com/iDigitalFlame/akcss/xerr"
+	"github.com/iDigitalFlame/akcss/userid"
 )
-
-var nobody = 0
 
 func valid(s string) bool {
 	if len(s) == 0 {
@@ -44,24 +40,6 @@ func valid(s string) bool {
 		}
 	}
 	return true
-}
-func lookupNobody() error {
-	if nobody > 0 {
-		return nil
-	}
-	u, err := user.Lookup("nobody")
-	if err != nil {
-		return xerr.Wrap(`cannot lookup user "nobody"`, err)
-	}
-	if len(u.Uid) == 0 || u.Uid == "0" {
-		return xerr.New(`lookup for "nobody" returned invalid UID "` + u.Uid + `"`)
-	}
-	n, err := strconv.ParseInt(u.Uid, 10, 64)
-	if err != nil {
-		return xerr.Wrap(`cannot parse "nobody" UID "`+u.Uid+`"`, err)
-	}
-	nobody = int(n)
-	return nil
 }
 func isUnix(s string) bool {
 	if len(s) < 6 {
@@ -111,19 +89,20 @@ func (m *manager) perms(p string, d fs.DirEntry, _ error) error {
 	if runtime.GOOS == "windows" {
 		return nil
 	}
-	if err := lookupNobody(); err != nil {
+	n, err := userid.Nobody()
+	if err != nil {
 		return err
 	}
 	if !d.IsDir() {
 		if strings.EqualFold(d.Name(), "crl.pem") {
-			if err := os.Chown(p, 0, nobody); err != nil {
+			if err := os.Chown(p, 0, n); err != nil {
 				return err
 			}
 			return os.Chmod(p, 0644)
 		}
 		switch strings.ToLower(filepath.Ext(p)) {
 		case ".crt":
-			if err := os.Chown(p, 0, nobody); err != nil {
+			if err := os.Chown(p, 0, n); err != nil {
 				return err
 			}
 			return os.Chmod(p, 0440)
@@ -141,7 +120,7 @@ func (m *manager) perms(p string, d fs.DirEntry, _ error) error {
 	case strings.EqualFold(d.Name(), "certs"):
 		fallthrough
 	case strings.HasPrefix(m.Config.Dirs.CA, p):
-		if err := os.Chown(p, 0, nobody); err != nil {
+		if err := os.Chown(p, 0, n); err != nil {
 			return err
 		}
 		return os.Chmod(p, 0755)

@@ -159,7 +159,12 @@ func (a *Authority) crl() ([]Update, error) {
 	if a.lock.Unlock(); err != nil {
 		return nil, err
 	}
-	b, err := a.cert.CreateCRL(rand.Reader, a.key, r, t, t.AddDate(0, 0, a.Lifetime.crl()))
+	b, err := x509.CreateRevocationList(rand.Reader, &x509.RevocationList{
+		Issuer:              a.cert.Issuer,
+		ThisUpdate:          t,
+		NextUpdate:          t.AddDate(0, 0, a.Lifetime.crl()),
+		RevokedCertificates: r,
+	}, a.cert, a.key)
 	if err != nil {
 		return nil, xerr.Wrap("could not generate CRL", err)
 	}

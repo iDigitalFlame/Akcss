@@ -136,7 +136,7 @@ func (s *server) edit(d *details) error {
 	}
 	return s.Save()
 }
-func (m *manager) new(x context.Context, d *details) (*server, error) {
+func (m *manager) new(_ context.Context, d *details) (*server, error) {
 	var (
 		p    uint16
 		n, h string
@@ -316,7 +316,7 @@ func (m *manager) process(x context.Context, n message) (*message, error) {
 		}
 		s, err = m.new(x, v)
 		if err != nil {
-			m.log.Error("[daemon/process/new] Attemtping to create a new server %q failed: %s!", i, err.Error())
+			m.log.Error("[daemon/process/new] Attempting to create a new server %q failed: %s!", i, err.Error())
 		}
 		if err == nil && s != nil {
 			m.log.Trace("[daemon/process/new] %s: Attempting to acquire server lock...", s.ID)
@@ -324,7 +324,7 @@ func (m *manager) process(x context.Context, n message) (*message, error) {
 			m.log.Trace("[daemon/process/new] %s: Server lock acquired.", s.ID)
 			m.log.Debug("[daemon/process/new] %s: Editing new server, options [%+v]", s.ID, v)
 			if err = s.edit(v); err != nil {
-				m.log.Error("[daemon/process/new] Attemtping to edit server %q failed: %s!", i, err.Error())
+				m.log.Error("[daemon/process/new] Attempting to edit server %q failed: %s!", i, err.Error())
 			}
 			if s.lock.Unlock(); err == nil && v.Restart {
 				err = s.Start()
@@ -347,7 +347,7 @@ func (m *manager) process(x context.Context, n message) (*message, error) {
 	r, w, err := s.process(x, m, n)
 	if w {
 		if err != nil {
-			m.log.Warning("[daemon/process] %s: Received an error during previous operation (%s), attemping to save anyway!", s.ID, err.Error())
+			m.log.Warning("[daemon/process] %s: Received an error during previous operation (%s), attempting to save anyway!", s.ID, err.Error())
 		}
 		if err2 := s.Save(); err2 != nil {
 			// We need to preserve the OG error.
@@ -360,7 +360,7 @@ func (m *manager) process(x context.Context, n message) (*message, error) {
 	s.lock.Unlock()
 	return r, err
 }
-func (s *server) process(x context.Context, m *manager, n message) (*message, bool, error) {
+func (s *server) process(_ context.Context, m *manager, n message) (*message, bool, error) {
 	switch n.Action {
 	case actionCRL:
 		m.log.Debug("[daemon/process/crl] %s: Triggering a CRL generation...", s.ID)
@@ -425,14 +425,14 @@ func (s *server) process(x context.Context, m *manager, n message) (*message, bo
 			return nil, false, err
 		}
 		if err := s.edit(v); err != nil {
-			m.log.Error("[daemon/process/edit] %s: Attemtping to edit server failed: %s!", s.ID, err.Error())
+			m.log.Error("[daemon/process/edit] %s: Attempting to edit server failed: %s!", s.ID, err.Error())
 			return nil, false, err
 		}
 		if !v.Restart {
 			return nil, true, nil
 		}
 		if err := s.Restart(); err != nil {
-			m.log.Error("[daemon/process/edit] %s: Attemtping to restart server failed: %s!", s.ID, err.Error())
+			m.log.Error("[daemon/process/edit] %s: Attempting to restart server failed: %s!", s.ID, err.Error())
 			return nil, true, err
 		}
 		return nil, true, nil
@@ -451,7 +451,7 @@ func (s *server) process(x context.Context, m *manager, n message) (*message, bo
 		}
 		m.log.Debug("[daemon/process/notify] %s: Adding notifications of %q for email %q.", s.ID, v.Action, v.Email)
 		if err := s.AddNotify(v.Email, v.Action); err != nil {
-			m.log.Error("[daemon/process/notify] %s: Attemtping to add notification entry failed: %s!", s.ID, err.Error())
+			m.log.Error("[daemon/process/notify] %s: Attempting to add notification entry failed: %s!", s.ID, err.Error())
 			return nil, false, err
 		}
 		return nil, true, nil
@@ -621,7 +621,7 @@ func (s *server) process(x context.Context, m *manager, n message) (*message, bo
 			m.log.Error("[daemon/process/newclient] %s: Error creating a new client %q: %s!", s.ID, v.Name, err.Error())
 			return nil, false, err
 		}
-		return &message{Action: responseClientNew, Data: []byte(r)}, false, nil
+		return &message{Action: responseClientNew, Data: r}, false, nil
 	case actionClientDelete:
 		v, ok := n.e.(*typeClientDelete)
 		if !ok || n.e == nil {
@@ -642,7 +642,7 @@ func (s *server) process(x context.Context, m *manager, n message) (*message, bo
 			m.log.Debug("[daemon/process/deleteclient] %s: Client %q removed and revoked.", s.ID, v.Name)
 			return nil, true, nil
 		}
-		m.log.Warning("[daemon/process/deleteclient] %s: Cannot revoke a non-existant certificate %q!", s.ID, v.Name)
+		m.log.Warning("[daemon/process/deleteclient] %s: Cannot revoke a non-existent certificate %q!", s.ID, v.Name)
 		return nil, false, xerr.New(`certificate "` + v.Name + `" does not exist`)
 	}
 	m.log.Trace("[daemon/process] Received an invalid message, ignoring!")

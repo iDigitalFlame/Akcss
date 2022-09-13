@@ -106,7 +106,7 @@ Server Options (for --new and --edit)
                                    during server runtime.
 
   VPN Network Options
-    --crosstalk                   Clients are allowed to connect to eachother.
+    --crosstalk                   Clients are allowed to connect to each other.
     --net         <network>       The network that clients will use.
     --net-start   <IP>            The starting address for leases.
     --net-end     <IP>            The end address for leases.
@@ -136,7 +136,7 @@ Server Options (for --new and --edit)
                                    over stored DHParams data.
     --dh-file     <file path>     Read and use the provided file for
                                    DHParams. This will fail if the file
-                                   does not exist. Overrites the previous
+                                   does not exist. Overrides the previous
                                    DHParam data saved.
     --dh-size     <0|2048|[4096]> Size of the initial DHparam file.
                                    Can be 2048 or 4096, defaults to 4096.
