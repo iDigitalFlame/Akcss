@@ -1,2 +1,4 @@
 github.com/PurpleSec/logx v1.6.0 h1:Izt49BihGlDDPjWYccIbFTVoKfjS53Uv6hDvp9rd4bE=
 github.com/PurpleSec/logx v1.6.0/go.mod h1:tkLK6CqkhkRSVejDMVgZa0jTq97aRikVNjAON9iUiK0=
+github.com/PurpleSec/logx v1.6.1 h1:0MCHXb1N9RREkg6FAQB624bkzzl/irlVcVV5DVMRAgo=
+github.com/PurpleSec/logx v1.6.1/go.mod h1:tkLK6CqkhkRSVejDMVgZa0jTq97aRikVNjAON9iUiK0=
