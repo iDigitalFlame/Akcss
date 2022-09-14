@@ -161,6 +161,7 @@ func (a *Authority) crl() ([]Update, error) {
 	}
 	b, err := x509.CreateRevocationList(rand.Reader, &x509.RevocationList{
 		Issuer:              a.cert.Issuer,
+		Number:              random(),
 		ThisUpdate:          t,
 		NextUpdate:          t.AddDate(0, 0, a.Lifetime.crl()),
 		RevokedCertificates: r,
