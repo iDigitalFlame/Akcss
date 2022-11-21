@@ -42,7 +42,7 @@ const (
 
 	msgCRLBody = `Hello,
 
-This is a notification that server %q (%s) has regenerated it's CRL list on %s.%s
+This is a notification that server "%s" (%s) has regenerated it's CRL list on %s.%s
 
 You are receiving this email as you were subscribed for notifications by the VPN Administrator.
 
@@ -50,7 +50,7 @@ You are receiving this email as you were subscribed for notifications by the VPN
 `
 	msgNewBody = `Hello,
 
-A new VPN profile %q was generated for the server %q on %s. This client now has access to the VPN service hosted on %q.
+A new VPN profile "%s" was generated for the server "%s" on %s. This client now has access to the VPN service hosted on "%s".
 
 You are receiving this email as you were subscribed for notifications by the VPN Administrator.
 
@@ -58,7 +58,7 @@ You are receiving this email as you were subscribed for notifications by the VPN
 `
 	msgStopBody = `Hello,
 
-The server %q (%s) was stopped on %s.
+The server "%s" (%s) was stopped on %s.
 
 You are receiving this email as you were subscribed for notifications by the VPN Administrator.
 
@@ -66,7 +66,7 @@ You are receiving this email as you were subscribed for notifications by the VPN
 `
 	msgStartBody = `Hello,
 
-The server %q (%s) was started on %s.
+The server "%s" (%s) was started on %s.
 
 You are receiving this email as you were subscribed for notifications by the VPN Administrator.
 
@@ -74,7 +74,7 @@ You are receiving this email as you were subscribed for notifications by the VPN
 `
 	msgRenewBody = `Hello,
 
-The server %q (%s) has renewed it's hosting certificate on %s.
+The server "%s" (%s) has renewed it's hosting certificate on %s.
 
 You are receiving this email as you were subscribed for notifications by the VPN Administrator.
 
@@ -82,7 +82,7 @@ You are receiving this email as you were subscribed for notifications by the VPN
 `
 	msgNewOwnBody = `Hello,
 
-There is a new VPN profile %q generated for you to connect to the VPN service %q.
+There is a new VPN profile "%s" generated for you to connect to the VPN service "%s".
 
 Please contact the VPN Administrator to receive the profile and any usage instructions.
 
@@ -90,7 +90,7 @@ Please contact the VPN Administrator to receive the profile and any usage instru
 `
 	msgExpireBody = `Hello,
 
-The profile %q for server %q (%s) has expired on %s. Please ensure that the profile holder has been notified to prevent VPN access interruptions.
+The profile "%s" for server "%s" (%s) has expired on %s. Please ensure that the profile holder has been notified to prevent VPN access interruptions.
 
 You are receiving this email as you were subscribed for notifications by the VPN Administrator.
 
@@ -98,7 +98,7 @@ You are receiving this email as you were subscribed for notifications by the VPN
 `
 	msgRevokeBody = `Hello,
 
-The profile %q for server %q (%s) was revoked on %s. The user with this profile can no longer access the VPN on %q.
+The profile "%s" for server "%s" (%s) was revoked on %s. The user with this profile can no longer access the VPN on "%s".
 
 You are receiving this email as you were subscribed for notifications by the VPN Administrator.
 
@@ -106,8 +106,8 @@ You are receiving this email as you were subscribed for notifications by the VPN
 `
 	msgConnectBody = `Hello,
 
-The profile %q connected to %q (%s) on %s.
-The connected device was assigned the internal network address %q linked to the external address %q.
+The profile "%s" connected to "%s" (%s) on %s.
+The connected device was assigned the internal network address "%s" linked to the external address "%s".
 
 You are receiving this email as you were subscribed for notifications by the VPN Administrator.
 
@@ -115,8 +115,8 @@ You are receiving this email as you were subscribed for notifications by the VPN
 `
 	msgDisconnectBody = `Hello,
 
-The profile %q disconnected from %q (%s) on %s.
-The device was assigned the internal network address %q and was active for %s.
+The profile "%s" disconnected from "%s" (%s) on %s.
+The device was assigned the internal network address "%s" and was active for %s.
 
 You are receiving this email as you were subscribed for notifications by the VPN Administrator.
 

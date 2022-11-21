@@ -205,28 +205,28 @@ func (m *manager) new(_ context.Context, d *details) (*server, error) {
 				`" cannot be greater than the CA lifetime "` + strconv.FormatUint(uint64(i), 10) + `"`,
 		)
 	}
-	m.log.Debug("[daemon/new] Generating PKI for %q at %q...", d.ID, k)
+	m.log.Debug(`[daemon/new] Generating PKI for "%s" at "%s"..`, d.ID, k)
 	a, err := pki.New(n, k, uint64(i), o)
 	if err != nil {
 		return nil, err
 	}
 	s := &server{file: c, Server: (&vpn.Server{ID: d.ID, CA: a}).Init(m)}
 	s.DH.Size, s.Service.Protocol, s.Service.Hostname = p, vpn.TCP, h
-	m.log.Trace("[daemon/new] Saving server %q config at %q...", d.ID, c)
+	m.log.Trace(`[daemon/new] Saving server "%s" config at "%s"..`, d.ID, c)
 	if err = s.Save(); err != nil {
 		os.RemoveAll(k)
 		m.lock.Unlock()
 		return nil, xerr.Wrap(`unable to save server configuration file "`+c+`"`, err)
 	}
 	m.servers[d.ID] = s
-	m.log.Info("[daemon/new] New server %q added!", d.ID)
+	m.log.Info(`[daemon/new] New server "%s" added!`, d.ID)
 	return s, nil
 }
 func (m *manager) process(x context.Context, n message) (*message, error) {
 	switch n.Action {
 	case actionReload:
-		m.log.Info("[daemon/process/reload] Triggering a manager reload...")
-		m.log.Trace("[daemon/process/reload] Attempting to acquire manager lock...")
+		m.log.Info("[daemon/process/reload] Triggering a manager reload..")
+		m.log.Trace("[daemon/process/reload] Attempting to acquire manager lock..")
 		m.lock.Lock()
 		m.log.Trace("[daemon/process/reload] Manager lock acquired.")
 		err := m.reload()
@@ -237,8 +237,8 @@ func (m *manager) process(x context.Context, n message) (*message, error) {
 		m.log.Debug("[daemon/process/reload] Reload complete.")
 		return nil, nil
 	case actionServerList:
-		m.log.Debug("[daemon/process/list] Generating a list of servers...")
-		m.log.Trace("[daemon/process/list] Attempting to acquire manager read lock...")
+		m.log.Debug("[daemon/process/list] Generating a list of servers..")
+		m.log.Trace("[daemon/process/list] Attempting to acquire manager read lock..")
 		m.lock.RLock()
 		l := &typeServerList{Servers: make([]typeServerListObj, 0, len(m.servers))}
 		m.log.Trace("[daemon/process/list] Manager read lock acquired.")
@@ -269,11 +269,11 @@ func (m *manager) process(x context.Context, n message) (*message, error) {
 	if err != nil {
 		if n.Action == actionCRL {
 			m.log.Info("[daemon/process/crl] Triggering a full CRL generation.")
-			m.log.Trace("[daemon/process/crl] Attempting to acquire manager read lock...")
+			m.log.Trace("[daemon/process/crl] Attempting to acquire manager read lock..")
 			m.lock.RLock()
 			m.log.Trace("[daemon/process/crl] Manager read lock acquired.")
 			for k, s := range m.servers {
-				m.log.Trace("[daemon/process/crl] %s: Attempting to acquire server lock...", s.ID)
+				m.log.Trace("[daemon/process/crl] %s: Attempting to acquire server lock..", s.ID)
 				s.lock.Lock()
 				m.log.Trace("[daemon/process/crl] %s: Server lock acquired.", s.ID)
 				err = s.CRL()
@@ -292,13 +292,13 @@ func (m *manager) process(x context.Context, n message) (*message, error) {
 	if !valid(i) {
 		return nil, xerr.New(`server ID "` + i + `" is invalid`)
 	}
-	m.log.Trace("[daemon/process] Attempting to acquire manager read lock...")
+	m.log.Trace("[daemon/process] Attempting to acquire manager read lock..")
 	m.lock.RLock()
 	m.log.Trace("[daemon/process] Manager read acquired.")
 	s, ok := m.servers[i]
 	if m.lock.RUnlock(); n.Action == actionServerNew {
 		if ok {
-			m.log.Error("[daemon/process/new] Received an existing server ID %q for new server request!", i)
+			m.log.Error(`[daemon/process/new] Received an existing server ID "%s" for new server request!`, i)
 			return nil, xerr.New(`server with ID "` + i + `" already exists`)
 		}
 		v, ok2 := n.e.(*details)
@@ -306,7 +306,7 @@ func (m *manager) process(x context.Context, n message) (*message, error) {
 			m.log.Error("[daemon/process/new] Received an invalid message payload type %T!", n.e)
 			return nil, errInvalidPayload
 		}
-		m.log.Trace("[daemon/process/new] Attempting to acquire manager lock...")
+		m.log.Trace("[daemon/process/new] Attempting to acquire manager lock..")
 		m.lock.Lock()
 		m.log.Trace("[daemon/process/new] Manager lock acquired.")
 		if err = v.verify(true); err != nil {
@@ -316,15 +316,15 @@ func (m *manager) process(x context.Context, n message) (*message, error) {
 		}
 		s, err = m.new(x, v)
 		if err != nil {
-			m.log.Error("[daemon/process/new] Attempting to create a new server %q failed: %s!", i, err.Error())
+			m.log.Error(`[daemon/process/new] Attempting to create a new server "%s" failed: %s!`, i, err.Error())
 		}
 		if err == nil && s != nil {
-			m.log.Trace("[daemon/process/new] %s: Attempting to acquire server lock...", s.ID)
+			m.log.Trace("[daemon/process/new] %s: Attempting to acquire server lock..", s.ID)
 			s.lock.Lock()
 			m.log.Trace("[daemon/process/new] %s: Server lock acquired.", s.ID)
 			m.log.Debug("[daemon/process/new] %s: Editing new server, options [%+v]", s.ID, v)
 			if err = s.edit(v); err != nil {
-				m.log.Error("[daemon/process/new] Attempting to edit server %q failed: %s!", i, err.Error())
+				m.log.Error(`[daemon/process/new] Attempting to edit server "%s" failed: %s!`, i, err.Error())
 			}
 			if s.lock.Unlock(); err == nil && v.Restart {
 				err = s.Start()
@@ -337,7 +337,7 @@ func (m *manager) process(x context.Context, n message) (*message, error) {
 		m.log.Debug("[daemon/process] Received a message with an invalid server ID, ignoring!")
 		return nil, xerr.Wrap(i, errInvalidID)
 	}
-	m.log.Debug("[daemon/process] Message is for server ID %q...", i)
+	m.log.Debug(`[daemon/process] Message is for server ID "%s"..`, i)
 	m.log.Trace("[daemon/process] %s: Checking for server lock..", s.ID)
 	if s.lock.Locked() {
 		return nil, xerr.New(`server "` + i + `" is currently locked for an operation`)
@@ -363,14 +363,14 @@ func (m *manager) process(x context.Context, n message) (*message, error) {
 func (s *server) process(_ context.Context, m *manager, n message) (*message, bool, error) {
 	switch n.Action {
 	case actionCRL:
-		m.log.Debug("[daemon/process/crl] %s: Triggering a CRL generation...", s.ID)
+		m.log.Debug("[daemon/process/crl] %s: Triggering a CRL generation..", s.ID)
 		if err := s.CRL(); err != nil {
 			m.log.Error("[daemon/process/crl] %s: CRL generation failed: %s!", s.ID, err.Error())
 			return nil, true, err
 		}
 		return nil, true, nil
 	case actionStop:
-		m.log.Debug("[daemon/process/stop] %s: Stopping server...", s.ID)
+		m.log.Debug("[daemon/process/stop] %s: Stopping server..", s.ID)
 		if err := s.Stop(); err != nil {
 			m.log.Error("[daemon/process/stop] %s: Stopping server failed: %s!", s.ID, err.Error())
 			return nil, true, err
@@ -384,21 +384,21 @@ func (s *server) process(_ context.Context, m *manager, n message) (*message, bo
 		}
 		return &message{Action: responseShow, Data: o}, false, nil
 	case actionStart:
-		m.log.Debug("[daemon/process/start] %s: Starting server...", s.ID)
+		m.log.Debug("[daemon/process/start] %s: Starting server..", s.ID)
 		if err := s.Start(); err != nil {
 			m.log.Error("[daemon/process/start] %s: Starting server failed: %s!", s.ID, err.Error())
 			return nil, true, err
 		}
 		return &message{Action: responseStatus, e: typeStatus{PID: s.Pid()}}, true, nil
 	case actionRenew:
-		m.log.Debug("[daemon/process/renew] %s: Triggering server renew...", s.ID)
+		m.log.Debug("[daemon/process/renew] %s: Triggering server renew..", s.ID)
 		if err := s.Renew(); err != nil {
 			m.log.Error("[daemon/process/renew] %s: Renewing server certificate failed: %s!", s.ID, err.Error())
 			return nil, true, err
 		}
 		return nil, true, nil
 	case actionStatus:
-		m.log.Debug("[daemon/process/status] %s: Reading server status...", s.ID)
+		m.log.Debug("[daemon/process/status] %s: Reading server status..", s.ID)
 		r, err := s.Status()
 		if err != nil {
 			m.log.Error("[daemon/process/status] %s: Reading server response failed: %s!", s.ID, err.Error())
@@ -449,7 +449,7 @@ func (s *server) process(_ context.Context, m *manager, n message) (*message, bo
 			m.log.Error("[daemon/process/notify] %s: Received an invalid message payload!", s.ID)
 			return nil, false, errInvalidPayload
 		}
-		m.log.Debug("[daemon/process/notify] %s: Adding notifications of %q for email %q.", s.ID, v.Action, v.Email)
+		m.log.Debug(`[daemon/process/notify] %s: Adding notifications of "%s" for email "%s".`, s.ID, v.Action, v.Email)
 		if err := s.AddNotify(v.Email, v.Action); err != nil {
 			m.log.Error("[daemon/process/notify] %s: Attempting to add notification entry failed: %s!", s.ID, err.Error())
 			return nil, false, err
@@ -472,7 +472,7 @@ func (s *server) process(_ context.Context, m *manager, n message) (*message, bo
 			m.log.Error("[daemon/process/notify] %s: Received an invalid message payload!", s.ID)
 			return nil, false, errInvalidPayload
 		}
-		m.log.Debug("[daemon/process/notify] %s: Removing notifications for email %q.", s.ID, v.Email)
+		m.log.Debug(`[daemon/process/notify] %s: Removing notifications for email "%s".`, s.ID, v.Email)
 		s.RemoveNotify(v.Email)
 		return nil, true, nil
 	case actionConnect:
@@ -505,7 +505,7 @@ func (s *server) process(_ context.Context, m *manager, n message) (*message, bo
 			m.log.Error("[daemon/process/option] %s: Received an invalid message payload!", s.ID)
 			return nil, false, errInvalidPayload
 		}
-		m.log.Debug("[daemon/process/option] %s: Adding server option of %q.", s.ID, v.Value)
+		m.log.Debug(`[daemon/process/option] %s: Adding server option of "%s".`, s.ID, v.Value)
 		s.AddOption(v.Value, v.Push, v.Config)
 		return nil, true, nil
 	case actionOptionList:
@@ -525,7 +525,7 @@ func (s *server) process(_ context.Context, m *manager, n message) (*message, bo
 			m.log.Error("[daemon/process/option] %s: Received an invalid message payload!", s.ID)
 			return nil, false, errInvalidPayload
 		}
-		m.log.Debug("[daemon/process/option] %s: Removing server option of %q.", s.ID, v.Value)
+		m.log.Debug(`[daemon/process/option] %s: Removing server option of "%s".`, s.ID, v.Value)
 		s.RemoveOption(v.Value, v.Push, v.Config)
 		return nil, true, nil
 	case actionOptionClientNew:
@@ -534,7 +534,7 @@ func (s *server) process(_ context.Context, m *manager, n message) (*message, bo
 			m.log.Error("[daemon/process/option] %s: Received an invalid message payload!", s.ID)
 			return nil, false, errInvalidPayload
 		}
-		m.log.Debug("[daemon/process/option] %s: Adding server option of %q.", s.ID, v.Value)
+		m.log.Debug(`[daemon/process/option] %s: Adding server option of "%s".`, s.ID, v.Value)
 		s.AddClientOption(v.Client, v.Value)
 		return nil, true, nil
 	case actionOptionClientList:
@@ -556,12 +556,12 @@ func (s *server) process(_ context.Context, m *manager, n message) (*message, bo
 			m.log.Error("[daemon/process/option] %s: Received an invalid message payload!", s.ID)
 			return nil, false, errInvalidPayload
 		}
-		m.log.Debug("[daemon/process/option] %s: Removing server option of %q.", s.ID, v.Value)
+		m.log.Debug(`[daemon/process/option] %s: Removing server option of "%s".`, s.ID, v.Value)
 		s.RemoveClientOption(v.Client, v.Value)
 		return nil, true, nil
 
 	case actionClientList:
-		m.log.Debug("[daemon/process/clientlist] %s: Generating client list...", s.ID)
+		m.log.Debug("[daemon/process/clientlist] %s: Generating client list..", s.ID)
 		c := typeClientList{Clients: make([]string, 0, len(s.CA.Issued))}
 		for i := range s.CA.Issued {
 			if !s.CA.Issued[i].Valid() {
@@ -586,7 +586,7 @@ func (s *server) process(_ context.Context, m *manager, n message) (*message, bo
 			m.log.Error("[daemon/process/deleteserver] %s: Received an invalid message payload!", s.ID)
 			return nil, false, errInvalidPayload
 		}
-		if m.log.Info("[daemon/process/deleteserver] %s: Deleting server...", s.ID); s.Running() {
+		if m.log.Info("[daemon/process/deleteserver] %s: Deleting server..", s.ID); s.Running() {
 			m.log.Debug("[daemon/process/deleteserver] %s: Stopping running server.", s.ID)
 			if err := s.Stop(); err != nil {
 				m.log.Error("[dameon/process/deleteserver] %s: Stopping server failed: %s!", s.ID, err.Error())
@@ -596,10 +596,10 @@ func (s *server) process(_ context.Context, m *manager, n message) (*message, bo
 		var err error
 		if m.lock.Lock(); !v.Soft {
 			if err = os.RemoveAll(s.CA.Directory); err != nil {
-				m.log.Error("[dameon/process/deleteserver] %s: Deleting server CA directory %q failed: %s!", s.ID, s.CA.Directory, err.Error())
+				m.log.Error(`[dameon/process/deleteserver] %s: Deleting server CA directory "%s" failed: %s!`, s.ID, s.CA.Directory, err.Error())
 			}
 			if err = os.Remove(s.file); err != nil {
-				m.log.Error("[dameon/process/deleteserver] %s: Deleting server config file %q failed: %s!", s.ID, s.file, err.Error())
+				m.log.Error(`[dameon/process/deleteserver] %s: Deleting server config file "%s" failed: %s!`, s.ID, s.file, err.Error())
 			}
 		}
 		delete(m.servers, s.ID)
@@ -615,10 +615,10 @@ func (s *server) process(_ context.Context, m *manager, n message) (*message, bo
 		if len(v.Name) == 0 {
 			return nil, false, xerr.Wrap("name", errNoEmpty)
 		}
-		m.log.Debug("[daemon/process/newclient] %s: Creating a new client %q...", s.ID, v.Name)
+		m.log.Debug(`[daemon/process/newclient] %s: Creating a new client "%s"..`, s.ID, v.Name)
 		r, _, _, err := s.NewClient(v.Name, v.Email, int(v.Days))
 		if err != nil {
-			m.log.Error("[daemon/process/newclient] %s: Error creating a new client %q: %s!", s.ID, v.Name, err.Error())
+			m.log.Error(`[daemon/process/newclient] %s: Error creating a new client "%s": %s!`, s.ID, v.Name, err.Error())
 			return nil, false, err
 		}
 		return &message{Action: responseClientNew, Data: r}, false, nil
@@ -629,20 +629,20 @@ func (s *server) process(_ context.Context, m *manager, n message) (*message, bo
 			return nil, false, errInvalidPayload
 		}
 		if strings.EqualFold(s.Service.Hostname, v.Name) {
-			m.log.Error("[daemon/process/deleteclient] %s: Cannot revoke server certificate %q!", s.ID, s.Service.Hostname)
+			m.log.Error(`[daemon/process/deleteclient] %s: Cannot revoke server certificate "%s"!`, s.ID, s.Service.Hostname)
 			return nil, false, xerr.New(`cannot revoke server certificate "` + s.Service.Hostname + `"`)
 		}
-		m.log.Info("[daemon/process/deleteclient] %s: Attempting to remove client %q...", s.ID, v.Name)
+		m.log.Info(`[daemon/process/deleteclient] %s: Attempting to remove client "%s"..`, s.ID, v.Name)
 		if c := s.CA.Certificate(v.Name); c != nil {
 			c.Revoke()
 			if err := s.CRL(); err != nil {
-				m.log.Warning("[daemon/process/deleteclient] %s: Could not revoke certificate %q: %s!", s.ID, v.Name, err.Error())
+				m.log.Warning(`[daemon/process/deleteclient] %s: Could not revoke certificate "%s": %s!`, s.ID, v.Name, err.Error())
 				return nil, false, err
 			}
-			m.log.Debug("[daemon/process/deleteclient] %s: Client %q removed and revoked.", s.ID, v.Name)
+			m.log.Debug(`[daemon/process/deleteclient] %s: Client "%s" removed and revoked.`, s.ID, v.Name)
 			return nil, true, nil
 		}
-		m.log.Warning("[daemon/process/deleteclient] %s: Cannot revoke a non-existent certificate %q!", s.ID, v.Name)
+		m.log.Warning(`[daemon/process/deleteclient] %s: Cannot revoke a non-existent certificate "%s"!`, s.ID, v.Name)
 		return nil, false, xerr.New(`certificate "` + v.Name + `" does not exist`)
 	}
 	m.log.Trace("[daemon/process] Received an invalid message, ignoring!")

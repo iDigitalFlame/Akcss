@@ -53,7 +53,7 @@ func (m *manager) mail(e mail) error {
 		x, f   = context.WithTimeout(context.Background(), timeout)
 		s, err = mailer.DialContext(x, "tcp", m.Config.Email.Host)
 	)
-	m.log.Trace("[deamon/mailer] Connecting to mail host %q...", m.Config.Email.Host)
+	m.log.Trace(`[deamon/mailer] Connecting to mail host "%s"..`, m.Config.Email.Host)
 	if f(); err != nil {
 		return xerr.Wrap(`could not connect to "`+m.Config.Email.Host+`"`, err)
 	}
@@ -77,7 +77,7 @@ func (m *manager) mail(e mail) error {
 		}
 	}
 	if len(m.Config.Email.Username) > 0 || len(m.Config.Email.Password) > 0 {
-		m.log.Debug("[deamon/mailer] Logging into mail host %q as %q...", h, m.Config.Email.Username)
+		m.log.Debug(`[deamon/mailer] Logging into mail host "%s" as "%s"..`, h, m.Config.Email.Username)
 		if err = c.Auth(smtp.PlainAuth(m.Config.Email.Username, m.Config.Email.Username, m.Config.Email.Password, h)); err != nil {
 			return xerr.Wrap(`mailer "`+h+`" authentication failed`, err)
 		}
@@ -107,18 +107,18 @@ func (m *manager) mail(e mail) error {
 	return nil
 }
 func (m *manager) mailer(x context.Context) {
-	m.log.Info("[daemon/mailer] Stating mailer thread...")
+	m.log.Info("[daemon/mailer] Stating mailer thread..")
 	for {
 		select {
 		case <-x.Done():
 			m.log.Info("[daemon/mailer] Stopping mailer thread.")
 			return
 		case e := <-m.deliver:
-			m.log.Debug("[daemon/mailer] Received email to send to %q...", e.To)
+			m.log.Debug(`[daemon/mailer] Received email to send to "%s"..`, e.To)
 			if err := m.mail(e); err != nil {
-				m.log.Warning("[daemon/mailer] Could not send email to %q: %s!", e.To, err.Error())
+				m.log.Warning(`[daemon/mailer] Could not send email to "%s": %s!`, e.To, err.Error())
 			}
-			m.log.Debug("[daemon/mailer] Completed email request to %q...", e.To)
+			m.log.Debug(`[daemon/mailer] Completed email request to "%s"..`, e.To)
 		}
 	}
 }

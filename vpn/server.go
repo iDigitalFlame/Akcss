@@ -138,7 +138,7 @@ func (s *Server) wait() {
 		return
 	}
 	s.lock.Lock()
-	s.log.Trace("[server/wait] %s: Mutex locked and watching server process...", s.ID)
+	s.log.Trace("[server/wait] %s: Mutex locked and watching server process..", s.ID)
 	var err error
 	if err = s.e.Wait(); err != nil {
 		s.log.Warning("[server/wait] %s: Process exited with error: %s!", s.ID, err.Error())
@@ -168,7 +168,7 @@ func (s *Server) wait() {
 	}
 	if !debug {
 		if err2 := os.RemoveAll(s.dir); err2 != nil {
-			s.log.Warning("[server/wait] %s: Could not remove server directory %q: %s!", s.ID, s.dir, err.Error())
+			s.log.Warning(`[server/wait] %s: Could not remove server directory "%s": %s!`, s.ID, s.dir, err.Error())
 		}
 	}
 	atomic.StoreUint32(&s.active, 0)
@@ -238,7 +238,7 @@ func (s *Server) start() error {
 		return xerr.Wrap(`could not open ip table "`+t+`"`, err)
 	}
 	for i := range s.Network.Saved {
-		s.log.Debug("[server/start] %s: Writing IP table setting %q...", s.ID, s.Network.Saved[i])
+		s.log.Debug(`[server/start] %s: Writing IP table setting "%s"..`, s.ID, s.Network.Saved[i])
 		if _, err = f.WriteString(s.Network.Saved[i] + "\n"); err != nil {
 			break
 		}
@@ -248,7 +248,7 @@ func (s *Server) start() error {
 	}
 	r := s.CA.Certificate(s.Service.Hostname)
 	if r == nil {
-		s.log.Info("[server/start] %s: Certificate for %q not found, generating now...", s.ID, s.Service.Hostname)
+		s.log.Info(`[server/start] %s: Certificate for "%s" not found, generating now..`, s.ID, s.Service.Hostname)
 		if r, err = s.CA.CreateServer(s.Service.Hostname, "", 0); err != nil {
 			return xerr.Wrap("could not generate server certificate", err)
 		}
@@ -257,7 +257,7 @@ func (s *Server) start() error {
 	if err = s.writeFile(o, r, i, t, c, p); err != nil {
 		return err
 	}
-	s.log.Debug("[server/start] %s: Setting working directory permissions...", s.ID)
+	s.log.Debug("[server/start] %s: Setting working directory permissions..", s.ID)
 	if err = filepath.WalkDir(s.dir, perms); err != nil {
 		s.log.Warning("[server/start] %s: Could not properly set permissions: %s!", s.ID, err.Error())
 	}
@@ -414,7 +414,7 @@ func (s *Server) Restart() error {
 	if i == 2 {
 		return errBlocked
 	}
-	s.log.Debug("[server/restart] %s: Performing a restart...", s.ID)
+	s.log.Debug("[server/restart] %s: Performing a restart..", s.ID)
 	if i == 1 {
 		if err := s.stop(false); err != nil {
 			return err
@@ -462,9 +462,9 @@ func (s *Server) renew(h string) error {
 	if r == 2 {
 		return errBlocked
 	}
-	s.log.Debug("[server/renew] %s: Starting the renew process...", s.ID)
+	s.log.Debug("[server/renew] %s: Starting the renew process..", s.ID)
 	if r == 1 {
-		s.log.Info("[server/renew] %s: Stopping active server instance...", s.ID)
+		s.log.Info("[server/renew] %s: Stopping active server instance..", s.ID)
 		if err := s.stop(false); err != nil {
 			return err
 		}
@@ -473,13 +473,13 @@ func (s *Server) renew(h string) error {
 	var c *pki.Certificate
 	if s.lock.Lock(); len(h) > 0 {
 		c = s.CA.Certificate(h)
-		s.log.Info("[server/renew] %s: Updating certificate to match new hostname (%s => %s)...", s.ID, h, s.Service.Hostname)
+		s.log.Info("[server/renew] %s: Updating certificate to match new hostname (%s => %s)..", s.ID, h, s.Service.Hostname)
 	} else {
 		c = s.CA.Certificate(s.Service.Hostname)
-		s.log.Debug("[server/renew] %s: Renewing certificate for %q...", s.ID, s.Service.Hostname)
+		s.log.Debug(`[server/renew] %s: Renewing certificate for"%s"..`, s.ID, s.Service.Hostname)
 	}
 	if c != nil {
-		s.log.Info("[server/renew] %s: Revoking certificate %q...", s.ID, c.Serial.String())
+		s.log.Info(`[server/renew] %s: Revoking certificate "%s"..`, s.ID, c.Serial.String())
 		c.Revoke()
 	}
 	if err := s.crl(true, false, h); err != nil {
@@ -617,7 +617,7 @@ func (s *Server) writeConfigs(c string) error {
 			return xerr.Wrap(`could not write client "`+k+`"`, err)
 		}
 		os.Chmod(filepath.Join(c, k), 0640)
-		s.log.Debug("[server/configs] %s: Wrote client config for %q to %q...", s.ID, k, c)
+		s.log.Debug(`[server/configs] %s: Wrote client config for "%s" to "%s"..`, s.ID, k, c)
 	}
 	return filepath.WalkDir(s.dir, perms)
 }
@@ -626,7 +626,7 @@ func (s *Server) notify(a action, m, d string) {
 		if s.Config.Notify[i].Events&a == 0 {
 			continue
 		}
-		s.log.Debug("[server/notify] %s: Sending email %q to %q...", s.ID, m, s.Config.Notify[i].Email)
+		s.log.Debug(`[server/notify] %s: Sending email "%s" to "%s"..`, s.ID, m, s.Config.Notify[i].Email)
 		s.manager.Mail(s.Config.Notify[i].Email, m, d)
 	}
 }
@@ -646,7 +646,7 @@ func (s *Server) crl(z, u bool, h string) error {
 	if atomic.LoadUint32(&s.active) == 2 {
 		return errBlocked
 	}
-	s.log.Debug("[server/crl] %s: Generation started...", s.ID)
+	s.log.Debug("[server/crl] %s: Generation started..", s.ID)
 	r, err := s.CA.Update()
 	if err != nil {
 		return err
@@ -663,14 +663,14 @@ func (s *Server) crl(z, u bool, h string) error {
 		if r[i].Expired {
 			e += r[i].Name + "\n"
 			s.actionExpire(r[i].Name)
-			s.log.Info("[server/crl] %s: Certificate %q has expired!", s.ID, r[i].Name)
+			s.log.Info(`[server/crl] %s: Certificate "%s" has expired!`, s.ID, r[i].Name)
 			continue
 		}
 		if !(z && !u && len(r[i].Name) == len(h) && strings.EqualFold(r[i].Name, h)) {
 			x += r[i].Name + "\n"
 			s.actionRevoke(r[i].Name)
 		}
-		s.log.Info("[server/crl] %s: Certificate %q was revoked!", s.ID, r[i].Name)
+		s.log.Info(`[server/crl] %s: Certificate "%s" was revoked!`, s.ID, r[i].Name)
 	}
 	var o string
 	if len(e) > 0 {
@@ -713,7 +713,7 @@ func (s *Server) generateDH(x context.Context, z bool) {
 	case 0:
 		s.log.Info("[server/gendh] %s: Skipping DHParam generation as the size is zero.", s.ID)
 	case 2048, 4096:
-		s.log.Info("[server/gendh] %s: Generating DHParams data (size %d), this will take some time...", s.ID, s.DH.Size)
+		s.log.Info("[server/gendh] %s: Generating DHParams data (size %d), this will take some time..", s.ID, s.DH.Size)
 		s.DH.Data, err = exec.CommandContext(x, "openssl", "dhparam", "-2", strconv.FormatUint(uint64(s.DH.Size), 10)).Output()
 		if err == nil && len(s.DH.Data) > 0 && s.DH.Data[len(s.DH.Data)-1] == 10 {
 			s.DH.Data = s.DH.Data[:len(s.DH.Data)-1]
@@ -827,7 +827,7 @@ func (s *Server) prep(x context.Context, z bool) (bool, error) {
 		return false, xerr.New(`server "` + s.ID + `" lacks a valid CA store`)
 	}
 	var err error
-	if s.log.Info("[server/prep] %s: Prepping and verifying server settings...", s.ID); len(s.Service.Auth.Data) == 0 {
+	if s.log.Info("[server/prep] %s: Prepping and verifying server settings..", s.ID); len(s.Service.Auth.Data) == 0 {
 		s.log.Warning("[server/prep] %s: Auth section is empty, generating new TLS-AUTH key!", s.ID)
 		if len(s.Service.Auth.File) == 0 {
 			if s.Service.Auth.Data, err = generateAuth(x); err != nil {
@@ -869,7 +869,7 @@ func (s *Server) prep(x context.Context, z bool) (bool, error) {
 		} else {
 			s.Service.Hostname = s.ID + "-server"
 		}
-		s.log.Warning("[server/prep] %s: No hostname given, setting to %q!", s.ID, s.Service.Hostname)
+		s.log.Warning(`[server/prep] %s: No hostname given, setting to "%s"!`, s.ID, s.Service.Hostname)
 	}
 	if s.Config.Limits.Max == 0 {
 		s.log.Warning("[server/prep] %s: Client limit is empty, setting to 64!", s.ID)
@@ -1204,14 +1204,14 @@ func (s *Server) NewClient(name, email string, days int) ([]byte, *pki.Certifica
 	} else if s.cancel(); err != nil {
 		return nil, nil, nil, err
 	}
-	s.log.Info("[server/newclient] %s: Attempting to create a client certificate for %q...", s.ID, name)
+	s.log.Info(`[server/newclient] %s: Attempting to create a client certificate for "%s"..`, s.ID, name)
 	k := s.Service.Auth.File
 	if len(k) == 0 {
 		f, err := os.CreateTemp("", s.ID+"-server-*.key")
 		if err != nil {
 			return nil, nil, nil, xerr.Wrap("could not create temp file for key", err)
 		}
-		s.log.Debug("[server/newclient] %s: Writing inline key to disk as %q...", s.ID, f.Name())
+		s.log.Debug(`[server/newclient] %s: Writing inline key to disk as "%s"..`, s.ID, f.Name())
 		if _, err = f.Write(s.Service.Auth.Data); err != nil {
 			return nil, nil, nil, xerr.Wrap("could not write key file", err)
 		}
@@ -1223,7 +1223,7 @@ func (s *Server) NewClient(name, email string, days int) ([]byte, *pki.Certifica
 	o, err := exec.Command("openvpn", "--tls-crypt-v2", k, "--genkey", "tls-crypt-v2-client").Output()
 	if len(s.Service.Auth.File) == 0 {
 		if err = os.Remove(k); err != nil {
-			s.log.Warning("[server/newclient] %s: Error attempting to remove temp file %q: %s!", s.ID, k, err.Error())
+			s.log.Warning(`[server/newclient] %s: Error attempting to remove temp file "%s": %s!`, s.ID, k, err.Error())
 		}
 	}
 	if err != nil {

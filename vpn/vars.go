@@ -212,10 +212,10 @@ func (o override) Get(s *Server, name, value string) string {
 		return name + " " + value
 	}
 	if v.Unset {
-		s.log.Debug("[server/override] %s: Value name %q unset by override!", s.ID, name)
+		s.log.Debug(`[server/override] %s: Value name "%s" unset by override!`, s.ID, name)
 		return ""
 	}
-	s.log.Debug("[server/override] %s: Value name %q overridden to %q!", s.ID, name, v.Value)
+	s.log.Debug(`[server/override] %s: Value name "%s" overridden to "%s"!`, s.ID, name, v.Value)
 	if len(v.Value) == 0 {
 		return name
 	}

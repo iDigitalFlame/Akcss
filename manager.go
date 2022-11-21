@@ -132,28 +132,28 @@ func daemon(f string, t bool) error {
 	m.deliver = make(chan mail, 64)
 	x, m.cancel = context.WithCancel(context.Background())
 	signal.Notify(w, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-	m.log.Info("[daemon] Starting up...")
+	m.log.Info("[daemon] Starting up..")
 	for k, s := range m.servers {
 		if !s.Config.Auto {
 			continue
 		}
-		m.log.Debug("[deamon] Starting server %q...", k)
+		m.log.Debug(`[deamon] Starting server "%s"..`, k)
 		if err = s.Start(); err != nil {
-			m.log.Error("[daemon] Could not start server %q: %s!", s.ID, err.Error())
+			m.log.Error(`[daemon] Could not start server "%s": %s!`, s.ID, err.Error())
 			if m.fault {
 				continue
 			}
 			m.shutdown(l)
 			return xerr.Wrap(`could not autostart server "`+k+`"`, err)
 		}
-		m.log.Debug("[daemon] Server %q startup complete.", k)
+		m.log.Debug(`[daemon] Server "%s" startup complete.`, k)
 	}
 	y := time.Duration(m.Config.Bailout) * time.Second
 	if y <= 0 {
 		y = time.Second * 15
 	}
 	z := time.AfterFunc(y, func() { atomic.StoreUint32(&m.startup, 1) })
-	m.log.Info("[daemon] Startup complete! Listening on %q...", m.Config.Socket)
+	m.log.Info(`[daemon] Startup complete! Listening on "%s"..`, m.Config.Socket)
 	go m.mailer(x)
 	go m.listen(x, l)
 	select {
@@ -162,18 +162,18 @@ func daemon(f string, t bool) error {
 	}
 	signal.Reset(syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	signal.Stop(w)
-	m.log.Info("[daemon] Shutting down and stopping threads...")
+	m.log.Info("[daemon] Shutting down and stopping threads..")
 	m.shutdown(l)
 	m.cancel()
 	if z.Stop(); len(m.deliver) > 0 {
-		m.log.Info("[daemon] Sending queued emails before shutdown...")
+		m.log.Info("[daemon] Sending queued emails before shutdown..")
 		for i := len(m.deliver); i > 0; i = len(m.deliver) {
 			e := <-m.deliver
-			m.log.Debug("[daemon/mailer] Received email to send to %q...", e.To)
+			m.log.Debug(`[daemon/mailer] Received email to send to "%s"..`, e.To)
 			if err := m.mail(e); err != nil {
-				m.log.Warning("[daemon/mailer] Could not send email to %q: %s!", e.To, err.Error())
+				m.log.Warning(`[daemon/mailer] Could not send email to "%s": %s!`, e.To, err.Error())
 			}
-			m.log.Debug("[daemon/mailer] Completed email request to %q...", e.To)
+			m.log.Debug(`[daemon/mailer] Completed email request to "%s"..`, e.To)
 		}
 	}
 	close(w)
@@ -188,7 +188,7 @@ func (m *manager) Log() logx.Log {
 	return m.log
 }
 func (m *manager) reload() error {
-	if m.log.Debug("[daemon/reload] Reload and server verification started..."); len(m.Config.Dirs.CA) == 0 {
+	if m.log.Debug("[daemon/reload] Reload and server verification started.."); len(m.Config.Dirs.CA) == 0 {
 		return xerr.New("certificate directory cannot be empty")
 	}
 	if len(m.Config.Dirs.Config) == 0 {
@@ -261,9 +261,9 @@ func (m *manager) reload() error {
 	if m.servers == nil {
 		m.servers = make(map[string]*server, len(l))
 	}
-	m.log.Info("[daemon/reload] Reading %d server entries..", len(l))
+	m.log.Info(`[daemon/reload] Reading %d server entries..`, len(l))
 	for i := range l {
-		m.log.Debug("[daemon/reload] Reading file %q...", l[i])
+		m.log.Debug(`[daemon/reload] Reading file "%s"..`, l[i])
 		if b, err = os.ReadFile(l[i]); err != nil {
 			return err
 		}
@@ -276,7 +276,7 @@ func (m *manager) reload() error {
 		if !valid(h.ID) {
 			return xerr.New(`server ID "` + h.ID + `" is invalid`)
 		}
-		m.log.Debug("[daemon/reload] Found server %q in file %q...", h.ID, l[i])
+		m.log.Debug(`[daemon/reload] Found server "%s" in file "%s"..`, h.ID, l[i])
 		if v, ok = m.servers[h.ID]; !ok {
 			v = &server{file: l[i]}
 			if v.Server, err = vpn.Load(b, m); err != nil {
@@ -286,17 +286,17 @@ func (m *manager) reload() error {
 				return xerr.New(`server ID "` + v.ID + `" is invalid`)
 			}
 			m.servers[h.ID] = v
-			m.log.Debug("[daemon/reload] Server %q has been added from %q!", h.ID, l[i])
+			m.log.Debug(`[daemon/reload] Server "%s" has been added from "%s"!`, h.ID, l[i])
 			continue
 		}
-		m.log.Debug("[daemon/reload] Server %q already exists, reloading from %q!", v.ID, l[i])
+		m.log.Debug(`[daemon/reload] Server "%s" already exists, reloading from "%s"!`, v.ID, l[i])
 		if err = v.Reload(b); err != nil {
 			return xerr.Wrap(`unable to reload server "`+v.ID+`"`, err)
 		}
 		if !valid(v.ID) {
 			return xerr.New(`server ID "` + v.ID + `" is invalid`)
 		}
-		m.log.Debug("[daemon/reload] Server %q reload complete.", v.ID)
+		m.log.Debug(`[daemon/reload] Server "%s" reload complete.`, v.ID)
 		if err = v.Save(); err != nil {
 			return xerr.Wrap(`unable to save server "`+v.ID+`"`, err)
 		}
@@ -316,7 +316,7 @@ func (m *manager) bail(err error) {
 	m.cancel()
 }
 func (m *manager) shutdown(l net.Listener) {
-	m.log.Info("[daemon/shutdown] Shutting down server...")
+	m.log.Info("[daemon/shutdown] Shutting down server..")
 	if err := l.Close(); err != nil {
 		m.log.Warning("[daemon/shutdown] Error during listener close: %s!", err.Error())
 	}
@@ -330,14 +330,14 @@ func (m *manager) shutdown(l net.Listener) {
 			}
 			continue
 		}
-		m.log.Debug("[daemon/shutdown] Attempting to stop server %q...", k)
+		m.log.Debug(`[daemon/shutdown] Attempting to stop server "%s"..`, k)
 		if err := s.Stop(); err != nil {
 			if m.err == nil {
 				m.err = err
 			}
-			m.log.Warning("[daemon/shutdown] Error during server %q stop: %s!", k, err.Error())
+			m.log.Warning(`[daemon/shutdown] Error during server "%s" stop: %s!`, k, err.Error())
 		}
-		m.log.Debug("[daemon/shutdown] Server %q stopped.", k)
+		m.log.Debug(`[daemon/shutdown] Server "%s" stopped.`, k)
 		if err := s.Save(); err != nil {
 			m.log.Warning("[daemon/shutdown] %s: Saving server state failed: %s!", s.ID, err.Error())
 		}
@@ -349,10 +349,10 @@ func (m *manager) shutdown(l net.Listener) {
 	}
 }
 func (m *manager) Callback(s *vpn.Server, err error) {
-	m.log.Debug("[daemon/callback] Received callback from %q, error (%s).", s.ID, err)
+	m.log.Debug(`[daemon/callback] Received callback from "%s", error (%s).`, s.ID, err)
 	i, ok := m.servers[s.ID]
 	if !ok {
-		m.log.Warning("[daemon/callback] Received callback from unknown server %q!", s.ID)
+		m.log.Warning(`[daemon/callback] Received callback from unknown server "%s"!`, s.ID)
 	}
 	if ok && i != nil {
 		if err2 := i.Save(); err2 != nil {
@@ -379,7 +379,7 @@ func (m *manager) accept(x context.Context, c net.Conn) {
 		c.Close()
 		return
 	}
-	m.log.Trace("[demon/accept] Received %q.", n.String())
+	m.log.Trace(`[demon/accept] Received "%s".`, n.String())
 	r, err := m.process(x, n)
 	if err != nil {
 		if err = raw(responseError, []byte(err.Error()), c); err != nil {
@@ -398,10 +398,10 @@ func (m *manager) accept(x context.Context, c net.Conn) {
 	}
 }
 func (m *manager) listen(x context.Context, l net.Listener) {
-	for m.log.Info("[daemon/listen] Starting listening thread..."); ; {
+	for m.log.Info("[daemon/listen] Starting listening thread.."); ; {
 		select {
 		case <-x.Done():
-			m.log.Info("[daemon/listen] Stopping listening thread...")
+			m.log.Info("[daemon/listen] Stopping listening thread..")
 			return
 		default:
 		}
@@ -432,6 +432,6 @@ func (m *manager) listen(x context.Context, l net.Listener) {
 		}
 		go m.accept(x, c)
 	}
-	m.log.Info("[daemon/listen] Stopping listening thread...")
+	m.log.Info("[daemon/listen] Stopping listening thread..")
 	m.cancel()
 }
