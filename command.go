@@ -1,4 +1,4 @@
-// Copyright (C) 2021 - 2022 iDigitalFlame
+// Copyright (C) 2021 - 2023 iDigitalFlame
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,6 +27,8 @@ import (
 	"github.com/iDigitalFlame/akcss/xerr"
 )
 
+//go:generate bash version.sh
+
 const (
 	socket    = "/var/run/akcss.sock"
 	socketTCP = "127.0.0.1:9090"
@@ -46,7 +48,10 @@ var (
 // parse the flags and create the Akcss instance.
 func Start() {
 	if f := new(flags).setup(); f.valid() {
-		if err := f.exec(); err != nil {
+		if f.Args.Version {
+			os.Stdout.WriteString("Akcss: " + buildVersion + "\n")
+			os.Exit(0)
+		} else if err := f.exec(); err != nil {
 			os.Stderr.WriteString(err.Error() + "!\n")
 			os.Exit(1)
 		}

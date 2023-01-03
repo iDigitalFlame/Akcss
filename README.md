@@ -31,7 +31,7 @@ Golang based OpenVPN manager and server.
 
 ```[text]
 Akcss - OpenVPN Manager
-iDigitalFlame 2021 - 2022 (idigitalflame.com)
+iDigitalFlame 2021 - 2023 (idigitalflame.com)
 
 General
   -c                              Configuration file path, defaults

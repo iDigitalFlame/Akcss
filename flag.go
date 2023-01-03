@@ -1,4 +1,4 @@
-// Copyright (C) 2021 - 2022 iDigitalFlame
+// Copyright (C) 2021 - 2023 iDigitalFlame
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -48,9 +48,10 @@ type flags struct {
 			Push   bool
 			Config bool
 		}
-		Force bool
-		Fault bool
-		Soft  bool
+		Force   bool
+		Fault   bool
+		Soft    bool
+		Version bool
 	}
 	Extra []string
 	details
@@ -243,7 +244,8 @@ func (f *flags) valid() bool {
 		f.Command.Option.New || f.Command.Option.List || f.Command.Option.Delete ||
 		f.Command.Option.Client.New || f.Command.Option.Client.List || f.Command.Option.Client.Delete ||
 		f.Command.Client.New || f.Command.Client.Delete ||
-		f.Command.Notify.New || f.Command.Notify.List || f.Command.Notify.Delete || f.Command.Config
+		f.Command.Notify.New || f.Command.Notify.List || f.Command.Notify.Delete || f.Command.Config ||
+		f.Args.Version
 }
 func (f *flags) setup() *flags {
 	f.FlagSet = flag.NewFlagSet("Akcss - OpenVPN Manager", flag.ContinueOnError)
@@ -255,6 +257,7 @@ func (f *flags) setup() *flags {
 	f.BoolVar(&f.Command.Daemon, "daemon", false, "")
 	f.BoolVar(&f.Command.Config, "d", false, "")
 	f.BoolVar(&f.Args.Fault, "no-fault", false, "")
+	f.BoolVar(&f.Args.Version, "V", false, "")
 
 	// Boolean Multi Pointers
 	var s, r = flagBooleans{&f.Command.Start, &f.Restart}, flagBooleans{&f.Command.Restart, &f.Restart}

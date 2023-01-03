@@ -1,4 +1,4 @@
-// Copyright (C) 2021 - 2022 iDigitalFlame
+// Copyright (C) 2021 - 2023 iDigitalFlame
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -39,13 +39,14 @@ const config = `{
 `
 
 const usage = `Akcss - OpenVPN Manager
-iDigitalFlame 2021 - 2022 (idigitalflame.com)
+iDigitalFlame 2021 - 2023 (idigitalflame.com)
 
 General
   -c                              Configuration file path, defaults
                                    to "akcss.conf" or "${AKCSS_CONF}".
   -r                              Send a reload signal to the daemon.
   -d                              Print default config and exit.
+  -V                              Print version string and exit.
   --no-fault                      Ignore startup errors and continue anyway.
                                    Applies only to daemon mode and allows fixing
                                    configuration errors.
